@@ -1,155 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>gamegam-api - 1.0.0-SNAPSHOT</title>
-    <style>
-        h1, h2, h3, h4, h5, h6 {
-            margin-bottom: 0.5rem;
-            font-weight: 400;
-            line-height: 1.5;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-        }
-
-        h2 {
-            font-size: 2rem
-        }
-
-        h3 {
-            font-size: 1.75rem
-        }
-
-        h4 {
-            font-size: 1.5rem
-        }
-
-        h5 {
-            font-size: 1.25rem
-        }
-
-        h6 {
-            font-size: 1rem
-        }
-
-        .lead {
-            font-weight: 300;
-            font-size: 2rem;
-        }
-
-        .banner {
-            font-size: 2.7rem;
-            margin: 0;
-            padding: 2rem 1rem;
-            background-color: #00A1E2;
-            color: white;
-        }
-
-        body {
-            margin: 0;
-            font-family: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-        }
-
-        code {
-            font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            font-size: 87.5%;
-            color: #e83e8c;
-            word-break: break-word;
-        }
-
-        .left-column {
-            padding: .75rem;
-            max-width: 75%;
-            min-width: 55%;
-        }
-
-        .right-column {
-            padding: .75rem;
-            max-width: 25%;
-        }
-
-        .container {
-            display: flex;
-            width: 100%;
-        }
-
-        li {
-            margin: 0.75rem;
-        }
-
-        .right-section {
-            margin-left: 1rem;
-            padding-left: 0.5rem;
-        }
-
-        .right-section h3 {
-            padding-top: 0;
-            font-weight: 200;
-        }
-
-        .right-section ul {
-            border-left: 0.3rem solid #00A1E2;
-            list-style-type: none;
-            padding-left: 0;
-        }
-
-    </style>
+    <title>Title</title>
 </head>
+
 <body>
-
-<div class="banner lead">
-    Your new Cloud-Native application is ready!
+PIN:
+<input type="text" id="user" name="PIN" style="height: 50px; width: 300px;"/>
+<button id="connect" onclick="connect()">connect</button>
+<br/>
+<button onclick="testDeviceOrientation()">Test Device Orientation</button>
+<button onclick="reset(0)">reset</button>
+<!--<button onclick="reset(1)">resetFront</button>-->
+<div class="garden">
+    <div class="ball"></div>
 </div>
 
-<div class="container">
-    <div class="left-column">
-        <p class="lead"> Congratulations, you have created a new Quarkus application.</p>
+<pre class="output"></pre>
 
-        <h2>Why do you see this?</h2>
+<style>
+.garden {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    border: 5px solid #CCC;
+    border-radius: 10px;
+}
 
-        <p>This page is served by Quarkus. The source is in
-            <code>src/main/resources/META-INF/resources/index.html</code>.</p>
+.ball {
+    position: absolute;
+    top: 90px;
+    left: 90px;
+    width: 20px;
+    height: 20px;
+    background: green;
+    border-radius: 1%;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/js/patternfly.min.js"></script>
+<script>
+        function connect() {
+            location.search = "?user=" + $('#user').val();
+        }
 
-        <h2>What can I do from here?</h2>
+        var defaultAngle = {
+            a:0,
+            b:0,
+            g:0
+        }
+         var currAngle = {
+            a:0,
+            b:0,
+            g:0
+        }
+        function reset(mode) {
+            if(mode === 0) {
+                defaultAngle.a = currAngle.a
+                defaultAngle.b = currAngle.b
+                defaultAngle.g = currAngle.g
+            }
+        }
 
-        <p>If not already done, run the application in <em>dev mode</em> using: <code>mvn compile quarkus:dev</code>.
-        </p>
-        <ul>
-            <li>Add REST resources, Servlets, functions and other services in <code>src/main/java</code>.</li>
-            <li>Your static assets are located in <code>src/main/resources/META-INF/resources</code>.</li>
-            <li>Configure your application in <code>src/main/resources/application.properties</code>.
-            </li>
-        </ul>
+        function testDeviceOrientation() {
+            if (typeof DeviceOrientationEvent !== 'function') {
+                return setResult('DeviceOrientationEvent not detected')
+            }
+            if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
+                return setResult('DeviceOrientationEvent.requestPermission not detected')
+            }
+            DeviceOrientationEvent.requestPermission().then(function (result) {
+                return setResult(result);
+            });
+        }
 
-        <h2>Do you like Quarkus?</h2>
-        <p>Go give it a star on <a href="https://github.com/quarkusio/quarkus">GitHub</a>.</p>
+        function setResult(result) {
+            document.getElementById('result').innerHTML = 'RESULT: ' + result;
+        }
+        /*
+        window.addEventListener("deviceorientation", function(event) {
+          // process event.alpha, event.beta and event.gamma
+          
+          document.write("alpha: " + event.alpha + "beta: " + event.beta + "gamma: " + event.gamma);
+      }, true);*/
 
-        <h2>How do I get rid of this page?</h2>
-        <p>Just delete the <code>src/main/resources/META-INF/resources/index.html</code> file.</p>
-    </div>
-    <div class="right-column">
-        <div class="right-section">
-            <h3>Application</h3>
-            <ul>
-                <li>GroupId: com.dappcraft</li>
-                <li>ArtifactId: gamegam-api</li>
-                <li>Version: 1.0.0-SNAPSHOT</li>
-                <li>Quarkus Version: 1.7.1.Final</li>
-            </ul>
-        </div>
-        <div class="right-section">
-            <h3>Next steps</h3>
-            <ul>
-                <li><a href="https://quarkus.io/guides/maven-tooling.html" target="_blank">Setup your IDE</a></li>
-                <li><a href="https://quarkus.io/guides/getting-started.html" target="_blank">Getting started</a></li>
-                <li><a href="https://quarkus.io" target="_blank">Quarkus Web Site</a></li>
-            </ul>
-        </div>
-    </div>
-</div>
+        var ball = document.querySelector('.ball');
+        var garden = document.querySelector('.garden');
+        var output = document.querySelector('.output');
+
+        var maxX = garden.clientWidth - ball.clientWidth;
+        var maxY = garden.clientHeight - ball.clientHeight;
+
+        var globalX;
+        var globalY;
+        var globalZ;
+
+        function handleOrientation(event) {
+            var z = event.alpha
+            var x = event.beta;  // In degree in the range [-180,180]
+            var y = event.gamma; // In degree in the range [-90,90]
 
 
+            output.innerHTML = "alpha : " + z + "\n";
+            output.innerHTML += "beta : " + x + "\n";
+            output.innerHTML += "gamma: " + y + "\n";
+
+            globalX = x
+            globalY = y
+            globalZ = z
+
+            // 10 is half the size of the ball
+            // It center the positioning point to the center of the ball
+            ball.style.top = 180 - (maxY * x / 180 - 10) + "px";
+            ball.style.left = 180 - (maxX * z / 180 - 10) + "px";
+            if (z > 15) {
+
+            }
+            else {
+                ball.style.borderRadius = (maxX * y / 180 - 40) + "%";
+                // ball.style.width = (10*z) + "px";
+
+<!--                output.innerHTML += (maxX * y / 180 - 40) + "%";-->
+            }
+        }
+
+        function connectTo(user) {
+            const ws = new WebSocket(location.protocol.replace('http', 'ws')+location.host+'/controller/'+user);
+            return ws;
+        }
+
+        var prevCoord = {x:0, y:0, z:0}
+        const diffLevel = 1
+
+      $( document ).ready(function() {
+        const params = new URLSearchParams(location.search)
+        var user = params.get("user")
+
+        console.log($('#user').value, user)
+        if(user != null) {
+            $('#user').val(user)
+<!--            $('#connect').hide()-->
+
+            let ws = connectTo(user);
+            ws.onopen = function (event) {
+                 window.addEventListener('deviceorientation', function (orientationEvent) {
+                    console.log(orientationEvent)
+                    currAngle = {
+                        a:orientationEvent.alpha,
+                        b:orientationEvent.beta,
+                        g:orientationEvent.gamma
+                    }
+                    const coord = {
+                            x: orientationEvent.beta,  // In degree in the range [-180,180],
+                            y: orientationEvent.gamma, // In degree in the range [-90,90],
+                            z: orientationEvent.alpha
+                        }
+                    const dx = prevCoord.x - coord.x;
+                    const dy = prevCoord.y - coord.y;
+                    const dz = prevCoord.z - coord.z;
+                    const diff = dx*dx + dy*dy + dz*dz
+
+                    if (diff>diffLevel) {
+                        const c = JSON.stringify({
+                            x: Math.round((orientationEvent.beta-defaultAngle.b)*10)/10,  // In degree in the range [-180,180],
+                            y: Math.round((orientationEvent.gamma-defaultAngle.g)*10)/10, // In degree in the range [-90,90],
+                            z: Math.round((orientationEvent.alpha-defaultAngle.a)*10)/10
+                        })
+                        ws.send(c);
+                        prevCoord = coord
+                    }
+                    handleOrientation(orientationEvent)
+                 });
+            };
+        }
+        })
+
+<!--        alert("test js")-->
+</script>
 </body>
+
 </html>

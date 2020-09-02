@@ -1,0 +1,10 @@
+traefik.enable=true
+traefik.http.services.traefik-game.loadbalancer.server.port=8080
+traefik.http.routers.game.rule=Host(`s.dapp-craft.com`)
+traefik.http.routers.game.entrypoints=http,https
+traefik.http.routers.game.tls=true
+traefik.http.routers.game.tls.certresolver=letsEncrypt
+traefik.http.middlewares.game.headers.accesscontrolallowmethods=GET,OPTIONS,PUT
+traefik.http.middlewares.game.headers.accesscontrolalloworiginlist=*
+traefik.http.middlewares.game.headers.accesscontrolmaxage=100
+traefik.http.middlewares.game.headers.addvaryheader=true
