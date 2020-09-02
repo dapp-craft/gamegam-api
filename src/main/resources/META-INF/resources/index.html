@@ -185,6 +185,8 @@
             globalX = x
             globalY = y
             globalZ = z
+            ball.style.top = (180 - x) + "px";
+            ball.style.left = (180 - z) + "px";
         }
 
         function connectTo(user) {
@@ -205,9 +207,6 @@
                 let ws = connectTo(user);
                 ws.onopen = function (event) {
                     window.addEventListener('deviceorientation', function (orientationEvent) {
-
-                        ball.style.top = 180 - x + "px";
-                        ball.style.left = 180 - z + "px";
                         console.log(orientationEvent)
                         currAngle = {
                             a: orientationEvent.alpha,
