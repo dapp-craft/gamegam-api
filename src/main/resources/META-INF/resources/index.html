@@ -13,11 +13,13 @@
         <h1 class="text">ENTER PIN</h1>
         <input class="btn_input" type="number" id="user" name="user" placeholder="Pin" />
         <button id="connect" class="btn connect" onclick="connect()">connect</button>
-    </div>
-    <div class="btn_block">
+        <br />
         <br />
         <button class="btn" onclick="testDeviceOrientation()">Start</button>
         <button class="btn" onclick="reset(0)">Calibrate</button>
+    </div>
+    <div class="btn_block">
+        
     </div>
     <style>
         * {
@@ -27,7 +29,7 @@
         .ball {
             position: absolute;
             top: 30px;
-            left: 50%;
+            left: 49%;
             width: 20px;
             height: 20px;
             background: rgb(198, 199, 198);
@@ -175,8 +177,8 @@
             globalZ = z
 
             var ball = document.querySelector('.ball');
-            ball.style.width = 180 - (maxY * x / 180 - 10) + "px";
-            ball.style.height = 180 - (maxX * z / 180 - 10) + "px";
+            ball.style.top = 180 - x + "px";
+            ball.style.left = 180 - z + "px";
         }
 
         function connectTo(user) {
