@@ -175,8 +175,8 @@
             globalZ = z
 
             var ball = document.querySelector('.ball');
-            ball.style.top = 180 - (maxY * x / 180 - 10) + "px";
-            ball.style.left = 180 - (maxX * z / 180 - 10) + "px";
+            ball.style.width = 180 - (maxY * x / 180 - 10) + "px";
+            ball.style.height = 180 - (maxX * z / 180 - 10) + "px";
         }
 
         function connectTo(user) {
