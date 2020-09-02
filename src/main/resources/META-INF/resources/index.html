@@ -3,61 +3,138 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1">
     <title>Title</title>
 </head>
 
 <body>
-PIN:
-<input type="text" id="user" name="PIN" style="height: 50px; width: 300px;"/>
-<button id="connect" onclick="connect()">connect</button>
-<br/>
-<button onclick="testDeviceOrientation()">Test Device Orientation</button>
-<button onclick="reset(0)">reset</button>
-<!--<button onclick="reset(1)">resetFront</button>-->
-<div class="garden">
-    <div class="ball"></div>
-</div>
+    <div class="pin">
+        <h1 class="text">ENTER PIN</h1>
+        <input class="btn_input" type="number" id="user" name="user" placeholder="Pin" />
+        <button id="connect" class="btn connect" onclick="connect()" >connect</button>
+    </div>
+    <div class="btn_block">
+        <br />
+        <button class="btn" onclick="testDeviceOrientation()">Start</button>
+        <button class="btn" onclick="reset(0)">Calibrate</button>
+    </div>
+    <style>
+        * {
+            outline: none;
+        }
 
-<pre class="output"></pre>
+        form {
+            display: inline-block;
+            width: 100%;
+            min-height: 100vh;
+        }
 
-<style>
-.garden {
-    position: relative;
-    width: 200px;
-    height: 200px;
-    border: 5px solid #CCC;
-    border-radius: 10px;
-}
+        .pin {
+            left: 0;
+            right: 0;
+            padding: 0 15px;
+            text-align: center;
+            position: absolute;
+            top: 35%;
+            transform: translateY(-50%);
+        }
 
-.ball {
-    position: absolute;
-    top: 90px;
-    left: 90px;
-    width: 20px;
-    height: 20px;
-    background: green;
-    border-radius: 1%;
-}
-</style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/js/patternfly.min.js"></script>
-<script>
+        .pin .text {
+            font-size: 28px;
+            line-height: 30px;
+            font-family: sans-serif;
+            color: #83b3c9;
+            margin: 10px 0;
+        }
+
+        .pin .btn_input {
+            width: 100%;
+            display: inline-block;
+            padding: 12px 15px;
+            box-sizing: border-box;
+            font-size: 18px;
+            line-height: 20px;
+            border-radius: 5px;
+            text-align: center;
+            border: 3px solid transparent;
+        }
+
+        .pin .btn_input:focus {
+            border: 3px solid #83b3c9;
+        }
+
+        .btn_block {
+            position: absolute;
+            bottom: 0;
+            left: 15px;
+            right: 15px;
+        }
+
+        .btn {
+            font-size: 18px;
+            line-height: 20px;
+            width: 100%;
+            background: rgba(256, 256, 256, 0.68);
+            border-radius: 4px;
+            border: none;
+            padding: 15px 15px;
+            margin: 5px 0;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #64516c;
+        }
+
+        .btn.connect {
+            color: #83b3c9;
+        }
+
+        .btn:last-child {
+            margin: 5px 0 15px;
+        }
+
+
+        body {
+            display: inline-block;
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            overflow: hidden;
+            background: rgba(31, 18, 43, 1);
+            background: -moz-linear-gradient(-45deg, rgba(31, 18, 43, 1) 0%, rgba(31, 18, 43, 1) 8%, rgba(100, 81, 108, 1) 47%, rgba(169, 112, 127, 1) 90%, rgba(169, 112, 127, 1) 100%);
+            background: -webkit-gradient(left top, right bottom, color-stop(0%, rgba(31, 18, 43, 1)), color-stop(8%, rgba(31, 18, 43, 1)), color-stop(47%, rgba(100, 81, 108, 1)), color-stop(90%, rgba(169, 112, 127, 1)), color-stop(100%, rgba(169, 112, 127, 1)));
+            background: -webkit-linear-gradient(-45deg, rgba(31, 18, 43, 1) 0%, rgba(31, 18, 43, 1) 8%, rgba(100, 81, 108, 1) 47%, rgba(169, 112, 127, 1) 90%, rgba(169, 112, 127, 1) 100%);
+            background: -o-linear-gradient(-45deg, rgba(31, 18, 43, 1) 0%, rgba(31, 18, 43, 1) 8%, rgba(100, 81, 108, 1) 47%, rgba(169, 112, 127, 1) 90%, rgba(169, 112, 127, 1) 100%);
+            background: -ms-linear-gradient(-45deg, rgba(31, 18, 43, 1) 0%, rgba(31, 18, 43, 1) 8%, rgba(100, 81, 108, 1) 47%, rgba(169, 112, 127, 1) 90%, rgba(169, 112, 127, 1) 100%);
+            background: linear-gradient(135deg, rgba(31, 18, 43, 1) 0%, rgba(31, 18, 43, 1) 8%, rgba(100, 81, 108, 1) 47%, rgba(169, 112, 127, 1) 90%, rgba(169, 112, 127, 1) 100%);
+            filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#1f122b', endColorstr='#a9707f', GradientType=1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/js/patternfly.min.js"></script>
+    <script>
         function connect() {
             location.search = "?user=" + $('#user').val();
         }
 
         var defaultAngle = {
-            a:0,
-            b:0,
-            g:0
+            a: 0,
+            b: 0,
+            g: 0
         }
-         var currAngle = {
-            a:0,
-            b:0,
-            g:0
+        var currAngle = {
+            a: 0,
+            b: 0,
+            g: 0
         }
         function reset(mode) {
-            if(mode === 0) {
+            if (mode === 0) {
                 defaultAngle.a = currAngle.a
                 defaultAngle.b = currAngle.b
                 defaultAngle.g = currAngle.g
@@ -122,63 +199,63 @@ PIN:
                 ball.style.borderRadius = (maxX * y / 180 - 40) + "%";
                 // ball.style.width = (10*z) + "px";
 
-<!--                output.innerHTML += (maxX * y / 180 - 40) + "%";-->
+< !--output.innerHTML += (maxX * y / 180 - 40) + "%"; -->
             }
         }
 
         function connectTo(user) {
-            const ws = new WebSocket(location.protocol.replace('http', 'ws')+location.host+'/controller/'+user);
+            const ws = new WebSocket(location.protocol.replace('http', 'ws') + location.host + '/controller/' + user);
             return ws;
         }
 
-        var prevCoord = {x:0, y:0, z:0}
+        var prevCoord = { x: 0, y: 0, z: 0 }
         const diffLevel = 1
 
-      $( document ).ready(function() {
-        const params = new URLSearchParams(location.search)
-        var user = params.get("user")
+        $(document).ready(function () {
+            const params = new URLSearchParams(location.search)
+            var user = params.get("user")
 
-        console.log($('#user').value, user)
-        if(user != null) {
-            $('#user').val(user)
-<!--            $('#connect').hide()-->
+            console.log($('#user').value, user)
+            if (user != null) {
+                $('#user').val(user)
+                    < !--$('#connect').hide()-->
 
-            let ws = connectTo(user);
-            ws.onopen = function (event) {
-                 window.addEventListener('deviceorientation', function (orientationEvent) {
-                    console.log(orientationEvent)
-                    currAngle = {
-                        a:orientationEvent.alpha,
-                        b:orientationEvent.beta,
-                        g:orientationEvent.gamma
-                    }
-                    const coord = {
+                        let ws = connectTo(user);
+                ws.onopen = function (event) {
+                    window.addEventListener('deviceorientation', function (orientationEvent) {
+                        console.log(orientationEvent)
+                        currAngle = {
+                            a: orientationEvent.alpha,
+                            b: orientationEvent.beta,
+                            g: orientationEvent.gamma
+                        }
+                        const coord = {
                             x: orientationEvent.beta,  // In degree in the range [-180,180],
                             y: orientationEvent.gamma, // In degree in the range [-90,90],
                             z: orientationEvent.alpha
                         }
-                    const dx = prevCoord.x - coord.x;
-                    const dy = prevCoord.y - coord.y;
-                    const dz = prevCoord.z - coord.z;
-                    const diff = dx*dx + dy*dy + dz*dz
+                        const dx = prevCoord.x - coord.x;
+                        const dy = prevCoord.y - coord.y;
+                        const dz = prevCoord.z - coord.z;
+                        const diff = dx * dx + dy * dy + dz * dz
 
-                    if (diff>diffLevel) {
-                        const c = JSON.stringify({
-                            x: Math.round((orientationEvent.beta-defaultAngle.b)*10)/10,  // In degree in the range [-180,180],
-                            y: Math.round((orientationEvent.gamma-defaultAngle.g)*10)/10, // In degree in the range [-90,90],
-                            z: Math.round((orientationEvent.alpha-defaultAngle.a)*10)/10
-                        })
-                        ws.send(c);
-                        prevCoord = coord
-                    }
-                    handleOrientation(orientationEvent)
-                 });
-            };
-        }
+                        if (diff > diffLevel) {
+                            const c = JSON.stringify({
+                                x: Math.round((orientationEvent.beta - defaultAngle.b) * 10) / 10,  // In degree in the range [-180,180],
+                                y: Math.round((orientationEvent.gamma - defaultAngle.g) * 10) / 10, // In degree in the range [-90,90],
+                                z: Math.round((orientationEvent.alpha - defaultAngle.a) * 10) / 10
+                            })
+                            ws.send(c);
+                            prevCoord = coord
+                        }
+                        handleOrientation(orientationEvent)
+                    });
+                };
+            }
         })
 
-<!--        alert("test js")-->
-</script>
+            < !--alert("test js")-->
+    </script>
 </body>
 
 </html>
