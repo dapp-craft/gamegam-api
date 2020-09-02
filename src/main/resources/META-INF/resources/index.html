@@ -8,10 +8,11 @@
 </head>
 
 <body>
+    <div class="ball"></div>
     <div class="pin">
         <h1 class="text">ENTER PIN</h1>
         <input class="btn_input" type="number" id="user" name="user" placeholder="Pin" />
-        <button id="connect" class="btn connect" onclick="connect()" >connect</button>
+        <button id="connect" class="btn connect" onclick="connect()">connect</button>
     </div>
     <div class="btn_block">
         <br />
@@ -23,10 +24,14 @@
             outline: none;
         }
 
-        form {
-            display: inline-block;
-            width: 100%;
-            min-height: 100vh;
+        .ball {
+            position: absolute;
+            top: 30px;
+            left: 45%;
+            width: 20px;
+            height: 20px;
+            background: rgb(198, 199, 198);
+            border-radius: 1%;
         }
 
         .pin {
@@ -163,11 +168,6 @@
       }, true);*/
 
         var ball = document.querySelector('.ball');
-        var garden = document.querySelector('.garden');
-        var output = document.querySelector('.output');
-
-        var maxX = garden.clientWidth - ball.clientWidth;
-        var maxY = garden.clientHeight - ball.clientHeight;
 
         var globalX;
         var globalY;
@@ -181,6 +181,10 @@
             globalX = x
             globalY = y
             globalZ = z
+
+            var ball = document.querySelector('.ball');
+            ball.style.top = 180 - (maxY * x / 180 - 10) + "px";
+            ball.style.left = 180 - (maxX * z / 180 - 10) + "px";
         }
 
         function connectTo(user) {
@@ -198,7 +202,7 @@
             console.log($('#user').value, user)
             if (user != null) {
                 $('#user').val(user)
-                        let ws = connectTo(user);
+                let ws = connectTo(user);
                 ws.onopen = function (event) {
                     window.addEventListener('deviceorientation', function (orientationEvent) {
                         console.log(orientationEvent)
