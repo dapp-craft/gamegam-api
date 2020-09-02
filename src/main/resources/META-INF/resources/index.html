@@ -179,28 +179,9 @@
             var x = event.beta;  // In degree in the range [-180,180]
             var y = event.gamma; // In degree in the range [-90,90]
 
-
-            output.innerHTML = "alpha : " + z + "\n";
-            output.innerHTML += "beta : " + x + "\n";
-            output.innerHTML += "gamma: " + y + "\n";
-
             globalX = x
             globalY = y
             globalZ = z
-
-            // 10 is half the size of the ball
-            // It center the positioning point to the center of the ball
-            ball.style.top = 180 - (maxY * x / 180 - 10) + "px";
-            ball.style.left = 180 - (maxX * z / 180 - 10) + "px";
-            if (z > 15) {
-
-            }
-            else {
-                ball.style.borderRadius = (maxX * y / 180 - 40) + "%";
-                // ball.style.width = (10*z) + "px";
-
-< !--output.innerHTML += (maxX * y / 180 - 40) + "%"; -->
-            }
         }
 
         function connectTo(user) {
@@ -218,8 +199,6 @@
             console.log($('#user').value, user)
             if (user != null) {
                 $('#user').val(user)
-                    < !--$('#connect').hide()-->
-
                         let ws = connectTo(user);
                 ws.onopen = function (event) {
                     window.addEventListener('deviceorientation', function (orientationEvent) {
@@ -253,8 +232,6 @@
                 };
             }
         })
-
-            < !--alert("test js")-->
     </script>
 </body>
 
