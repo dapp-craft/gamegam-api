@@ -11,6 +11,7 @@
     <div class="field">
         <div class="ball"></div>
     </div>
+    <input class="btn_input" type="text" id="info" />
     <div class="pin">
         <h1 class="text">ENTER PIN</h1>
         <input class="btn_input" type="number" id="user" name="user" placeholder="Pin" />
@@ -134,14 +135,9 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/js/patternfly.min.js"></script>
+    <script src="./motion-sensors.js"></script>
 
-    <script type="module">
-            import {
-              AbsoluteOrientationSensor,
-              RelativeOrientationSensor
-            } from './motion-sensors.js';
-
-
+    <script>
         function connect() {
             location.search = "?user=" + $('#user').val();
         }
@@ -205,18 +201,16 @@
         const diffLevel = 1
 
 
-        function initSensor(onreading) {
+        const infoLog = $("#info")
+
+        function initSensor(onreading, onerror) {
             const options = { frequency: 60 };
-            const relative = false
             console.log(JSON.stringify(options));
-            sensor = relative ? new RelativeOrientationSensor(options) : new AbsoluteOrientationSensor(options);
+            sensor = new AbsoluteOrientationSensor(options);
             sensor.onreading = onreading(sensor);
-            sensor.onerror = (event) => {
-              if (event.error.name == 'NotReadableError') {
-                console.log("Sensor is not available.");
-              }
-            }
+            sensor.onerror = onerror
             sensor.start();
+            infoLog.val("sensor start")
         }
 
         $(document).ready(function () {
@@ -228,10 +222,30 @@
                 $('#user').val(user)
                 let ws = connectTo(user);
                 ws.onopen = function (event) {
-                    initSensor((sensor) =>
-                        ws.send(JSON.stringify(sensor.quaternion))
-                    )
+                    initSensor(
+                    (sensor) => {
+                        infoLog.val(JSON.stringify(sensor))
+                        ws.send(JSON.stringify(sensor.quaternion))},
+                    (event) => {
+                          infoLog.val('error:'+JSON.stringify(event))
+                          if (event.error.name == 'NotReadableError') {
+                            ws.send("Sensor is not available.");
+                          } else {
+                           ws.send(JSON.stringify(event));
+                          }
+                    })
                 };
+            } else {
+                initSensor(
+                    (sensor) =>
+                        console.log(sensor.quaternion),
+                    (event) => {
+                          if (event.error.name == 'NotReadableError') {
+                            console.log("Sensor is not available.");
+                          } else {
+                           console.log(JSON.stringify(event.error));
+                          }
+                    })
             }
         })
     </script>
