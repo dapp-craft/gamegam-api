@@ -204,10 +204,15 @@
         const infoLog = $("#info")
 
         function initSensor(onreading, onerror) {
-            const options = { frequency: 60 };
+            const options = { frequency: 60, coordinateSystem: 'world' };
             console.log(JSON.stringify(options));
-            sensor = new AbsoluteOrientationSensor(options);
-            sensor.onreading = onreading(sensor);
+            const sensor = new RelativeOrientationSensor(options);
+            sensor.onreading = () => {
+            if (sensor != null) {
+                infoLog.val('quan: '+JSON.stringify(sensor.quaternion))
+                } else { infoLog.val('sensor null')}
+                onreading(sensor);
+            }
             sensor.onerror = onerror
             sensor.start();
             infoLog.val("sensor start")
@@ -224,10 +229,10 @@
                 ws.onopen = function (event) {
                     initSensor(
                     (sensor) => {
-                        infoLog.val(JSON.stringify(sensor))
-                        ws.send(JSON.stringify(sensor.quaternion))},
+                            ws.send(JSON.stringify(sensor.quaternion))
+                        },
                     (event) => {
-                          infoLog.val('error:'+JSON.stringify(event))
+                          infoLog.val('error:'+JSON.stringify(event.error.name)+JSON.stringify(event))
                           if (event.error.name == 'NotReadableError') {
                             ws.send("Sensor is not available.");
                           } else {
