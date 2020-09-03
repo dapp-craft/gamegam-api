@@ -11,9 +11,11 @@
     <div class="field">
         <div class="ball"></div>
     </div>
+    <input class="btn_input" type="text" id="info" />
     <div class="pin">
         <h1 class="text">ENTER PIN</h1>
         <input class="btn_input" type="number" id="user" name="user" placeholder="Pin" />
+        <input class="btn_input" type="number" id="frequency" name="frequency" value="5"/>
         <button id="connect" class="btn connect" onclick="connect()">connect</button>
         <br />
         <br />
@@ -134,9 +136,11 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/js/patternfly.min.js"></script>
+    <script src="./motion-sensors.js"></script>
+
     <script>
         function connect() {
-            location.search = "?user=" + $('#user').val();
+            location.search = "?user=" + $('#user').val() + "&freq=" + $('#frequency').val();
         }
 
         var defaultAngle = {
@@ -173,28 +177,6 @@
             document.getElementById('result').innerHTML = 'RESULT: ' + result;
         }
 
-        function toQuaternionFromEuler(alpha, beta, gamma) {
-              const degToRad = Math.PI / 180
-
-              const x = (beta || 0) * degToRad;
-              const y = (gamma || 0) * degToRad;
-              const z = (alpha || 0) * degToRad;
-
-              const cZ = Math.cos(z * 0.5);
-              const sZ = Math.sin(z * 0.5);
-              const cY = Math.cos(y * 0.5);
-              const sY = Math.sin(y * 0.5);
-              const cX = Math.cos(x * 0.5);
-              const sX = Math.sin(x * 0.5);
-
-              const qx = sX * cY * cZ - cX * sY * sZ;
-              const qy = cX * sY * cZ + sX * cY * sZ;
-              const qz = cX * cY * sZ + sX * sY * cZ;
-              const qw = cX * cY * cZ - sX * sY * sZ;
-
-              return [qx, qy, qz, qw];
-            }
-
         var ball = document.querySelector('.ball');
         var globalX;
         var globalY;
@@ -219,40 +201,63 @@
         var prevCoord = { x: 0, y: 0, z: 0 }
         const diffLevel = 1
 
+
+        const infoLog = $("#info")
+
+        function initSensor(onreading, onerror, freq) {
+            const options = { frequency: freq, coordinateSystem: 'world' };
+            console.log(JSON.stringify(options));
+            const sensor = new RelativeOrientationSensor(options);
+            sensor.onreading = () => {
+            if (sensor != null) {
+                    infoLog.val('quan: '+JSON.stringify(sensor.quaternion))
+                } else { infoLog.val('sensor null')}
+                onreading(sensor);
+            }
+            sensor.onerror = onerror
+            sensor.start();
+            infoLog.val("sensor start")
+        }
+
         $(document).ready(function () {
             const params = new URLSearchParams(location.search)
             var user = params.get("user")
+            var freq = params.get("freq")
+            if (freq == null) {
+            freq = 10
+            $("#frequency").val(freq)
+            }
 
             console.log($('#user').value, user)
             if (user != null) {
                 $('#user').val(user)
+                $("#frequency").val(freq)
                 let ws = connectTo(user);
                 ws.onopen = function (event) {
-                    window.addEventListener('deviceorientation', function (orientationEvent) {
-                        console.log(orientationEvent)
-                        currAngle = {
-                            a: orientationEvent.alpha,
-                            b: orientationEvent.beta,
-                            g: orientationEvent.gamma
-                        }
-                        const coord = {
-                            x: orientationEvent.beta,  // In degree in the range [-180,180],
-                            y: orientationEvent.gamma, // In degree in the range [-90,90],
-                            z: orientationEvent.alpha
-                        }
-                        const dx = prevCoord.x - coord.x;
-                        const dy = prevCoord.y - coord.y;
-                        const dz = prevCoord.z - coord.z;
-                        const diff = dx * dx + dy * dy + dz * dz
-
-                        if (diff > diffLevel) {
-                            const c = JSON.stringify(toQuaternionFromEuler(orientationEvent.alpha, orientationEvent.beta, orientationEvent.gamma))
-                            ws.send(c);
-                            prevCoord = coord
-                        }
-                        handleOrientation(orientationEvent)
-                    });
+                    initSensor(
+                    (sensor) => {
+                            ws.send(JSON.stringify(sensor.quaternion))
+                        },
+                    (event) => {
+                          infoLog.val('error:'+JSON.stringify(event.error.name)+JSON.stringify(event))
+                          if (event.error.name == 'NotReadableError') {
+                            ws.send("Sensor is not available.");
+                          } else {
+                           ws.send(JSON.stringify(event));
+                          }
+                    }, freq)
                 };
+            } else {
+                initSensor(
+                    (sensor) =>
+                        console.log(sensor.quaternion),
+                    (event) => {
+                          if (event.error.name == 'NotReadableError') {
+                            console.log("Sensor is not available.");
+                          } else {
+                           console.log(JSON.stringify(event.error));
+                          }
+                    })
             }
         })
     </script>
