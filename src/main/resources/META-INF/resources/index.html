@@ -15,6 +15,7 @@
     <div class="pin">
         <h1 class="text">ENTER PIN</h1>
         <input class="btn_input" type="number" id="user" name="user" placeholder="Pin" />
+        <input class="btn_input" type="number" id="frequency" name="frequency" value="5"/>
         <button id="connect" class="btn connect" onclick="connect()">connect</button>
         <br />
         <br />
@@ -139,7 +140,7 @@
 
     <script>
         function connect() {
-            location.search = "?user=" + $('#user').val();
+            location.search = "?user=" + $('#user').val() + "&freq=" + $('#frequency').val();
         }
 
         var defaultAngle = {
@@ -203,13 +204,13 @@
 
         const infoLog = $("#info")
 
-        function initSensor(onreading, onerror) {
-            const options = { frequency: 60, coordinateSystem: 'world' };
+        function initSensor(onreading, onerror, freq) {
+            const options = { frequency: freq, coordinateSystem: 'world' };
             console.log(JSON.stringify(options));
             const sensor = new RelativeOrientationSensor(options);
             sensor.onreading = () => {
             if (sensor != null) {
-                infoLog.val('quan: '+JSON.stringify(sensor.quaternion))
+                    infoLog.val('quan: '+JSON.stringify(sensor.quaternion))
                 } else { infoLog.val('sensor null')}
                 onreading(sensor);
             }
@@ -221,10 +222,16 @@
         $(document).ready(function () {
             const params = new URLSearchParams(location.search)
             var user = params.get("user")
+            var freq = params.get("freq")
+            if (freq == null) {
+            freq = 10
+            $("#frequency").val(freq)
+            }
 
             console.log($('#user').value, user)
             if (user != null) {
                 $('#user').val(user)
+                $("#frequency").val(freq)
                 let ws = connectTo(user);
                 ws.onopen = function (event) {
                     initSensor(
@@ -238,7 +245,7 @@
                           } else {
                            ws.send(JSON.stringify(event));
                           }
-                    })
+                    }, freq)
                 };
             } else {
                 initSensor(
