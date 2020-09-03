@@ -41,7 +41,7 @@
             left: 49%;
             width: 20px;
             height: 20px;
-            background: rgb(198, 199, 198);
+            background: rgb(245, 0, 151);
             border-radius: 100%;
             z-index: 100;
         }
@@ -192,6 +192,8 @@
             globalX = x
             globalY = y
             globalZ = z
+            ball.style.top = (x) + "px";
+            ball.style.left = (z) + "px";
         }
 
         function connectTo(user) {
