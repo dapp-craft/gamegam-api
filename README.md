@@ -28,3 +28,10 @@ Or, if you don't have GraalVM installed, you can run the native executable build
 You can then execute your native executable with: `./target/gamegam-api-1.0.0-SNAPSHOT-runner`
 
 If you want to learn more about building native executables, please consult https://quarkus.io/guides/building-native-image.
+
+
+## Deploy
+
+`mvnw package -Dquarkus.container-image.build=true -DskipTests=true`
+
+`docker stop game && docker run --label-file=labels --network=backend_elk --rm -p 8080 --name game alexey/gamegam-api:1.0.0-SNAPSHOT`
