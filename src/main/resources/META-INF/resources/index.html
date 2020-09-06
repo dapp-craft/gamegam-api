@@ -246,9 +246,6 @@
                 $('#user').val(user)
                 wSocket = connectTo(user);
                 wSocket.onopen = function (event) {
-                    console.log('dsds')
-                    return
-
                     window.addEventListener('deviceorientation', function (orientationEvent) {
                         console.log(orientationEvent)
                         currAngle = {
