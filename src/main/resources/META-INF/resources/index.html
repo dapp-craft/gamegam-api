@@ -19,6 +19,7 @@
         <br />
         <button class="btn" onclick="testDeviceOrientation()">Start</button>
         <button class="btn" onclick="reset(0)">Calibrate</button>
+        <button class="btn" onclick="sendCommand('on')">On</button>
     </div>
     <div class="btn_block">
 
@@ -150,6 +151,7 @@
             g: 0
         }
         function reset(mode) {
+            console.log('reset', mode)
             if (mode === 0) {
                 defaultAngle.a = currAngle.a
                 defaultAngle.b = currAngle.b
@@ -219,6 +221,22 @@
         var prevCoord = { x: 0, y: 0, z: 0 }
         const diffLevel = 1
 
+        var wSocket = null
+
+        function sendCommand(cmd) {
+            if (wSocket != null) {
+                const c = JSON.stringify({
+                    type: 'cmd',
+                    cmd: cmd
+                    }
+                )
+                console.log(c)
+                wSocket.send(c);
+            } else {
+                console.log('socker closed')
+            }
+        }
+
         $(document).ready(function () {
             const params = new URLSearchParams(location.search)
             var user = params.get("user")
@@ -226,8 +244,11 @@
             console.log($('#user').value, user)
             if (user != null) {
                 $('#user').val(user)
-                let ws = connectTo(user);
-                ws.onopen = function (event) {
+                wSocket = connectTo(user);
+                wSocket.onopen = function (event) {
+                    console.log('dsds')
+                    return
+
                     window.addEventListener('deviceorientation', function (orientationEvent) {
                         console.log(orientationEvent)
                         currAngle = {
@@ -246,8 +267,11 @@
                         const diff = dx * dx + dy * dy + dz * dz
 
                         if (diff > diffLevel) {
-                            const c = JSON.stringify(toQuaternionFromEuler(orientationEvent.alpha, orientationEvent.beta, orientationEvent.gamma))
-                            ws.send(c);
+                            const c = JSON.stringify({
+                                type: 'rotate',
+                                quat: toQuaternionFromEuler(orientationEvent.alpha, orientationEvent.beta, orientationEvent.gamma)
+                            })
+                            wSocket.send(c);
                             prevCoord = coord
                         }
                         handleOrientation(orientationEvent)

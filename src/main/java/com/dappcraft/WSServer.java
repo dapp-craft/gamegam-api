@@ -1,7 +1,11 @@
 package com.dappcraft;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.google.gson.Gson;
 import org.jboss.logging.Logger;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -13,6 +17,7 @@ import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import javax.websocket.Session;
 
+
 @ServerEndpoint("/{type}/{user}")
 @ApplicationScoped
 public class WSServer {
@@ -20,7 +25,7 @@ public class WSServer {
     Map<String, Session> controllerSessions = new ConcurrentHashMap<>();
 
     private static final Logger LOG = Logger.getLogger(WSServer.class);
-
+    private Gson gson = new Gson();
     @OnOpen
     public void onOpen(Session session, @PathParam("type") String type, @PathParam("user") String user) {
         if(type.equals("scene")) {
@@ -62,16 +67,27 @@ public class WSServer {
         if(type.equals("scene")) {
             LOG.infov("onMessage scene socket {0}: {1}", user, message);
         } else if (type.equals("controller")) {
+            WsMessage msg = parse(message);
+            LOG.infov("controller msg {0}, {1}", user, msg.getType());
             if (sceneSessions.containsKey((user))) {
-                sceneSessions.get(user).getAsyncRemote().sendObject(message, result -> {
-                    if (result.getException() != null) {
-                        LOG.errorv(result.getException(), "Unable to send message to scene for {0}", user);
-                    }
-                });
+                if (msg.getType().equals("rotate")) {
+                    LOG.infov("send {0}, {1}, {2}, {3}", msg.getQuat()[0], msg.getQuat()[1], msg.getQuat()[2], msg.getQuat()[3]);
+                    message = gson.toJson(msg.getQuat());
+                    sceneSessions.get(user).getAsyncRemote().sendObject(message, result -> {
+                        if (result.getException() != null) {
+                            LOG.errorv(result.getException(), "Unable to send message to scene for {0}", user);
+                        }
+                    });
+                }
             }
         } else {
             LOG.errorv("onMessage error, unknown type {0}, {1}", type, user);
         }
+    }
+
+    private WsMessage parse(String json) {
+
+        return gson.fromJson(json, WsMessage.class);
     }
 
     private void broadcast(String message) {
