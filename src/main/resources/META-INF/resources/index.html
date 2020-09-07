@@ -16,7 +16,8 @@
          <br />
         <h1 class="text">ENTER PIN</h1>
         <input class="btn_input" type="number" id="user" name="user" placeholder="Pin" />
-        <button id="connect" class="btn connect" onclick="connect()">Start</button>
+        <button id="connect" class="btn connect" onclick="connect()">Connect</button>
+        <button class="btn connect" onclick="testDeviceOrientation()">Start</button>
         <br />
         <br />
         <button class="btn" onclick="reset(0)">Calibrate</button>
@@ -143,7 +144,6 @@
     <script>
         function connect() {
             location.search = "?user=" + $('#user').val();
-            testDeviceOrientation()
         }
 
         var defaultAngle = {
