@@ -15,15 +15,16 @@
          <br />
          <br />
          <br />
-         <br />
-        <h1 class="text">ENTER PIN</h1>
-        <input class="btn_input" type="number" id="user" name="user" placeholder="Pin" />
+<!--         <br />-->
+<!--        <h1 class="text">ENTER PIN</h1>-->
+        <input class="btn_input" type="number" id="user" name="user" placeholder="PIN" onchange="showConnectBtn()" />
         <button id="connect" class="btn connect" onclick="connect()">Connect</button>
-        <button class="btn connect" onclick="testDeviceOrientation()">Start</button>
+<!--        <button class="btn connect" onclick="testDeviceOrientation()">Start</button>-->
+<!--        <br />-->
         <br />
-        <br />
-        <button class="btn" onclick="reset(0)">Calibrate</button>
-        <button class="btn" onclick="sendCommand('on')">On</button>
+<!--        <button class="btn" onclick="reset(0)">Calibrate</button>-->
+        <button class="btn" onclick="sendCommand('on')">Sword Switch</button>
+        <button class="btn" onclick="sendCommand('changeHands')">Change Hands</button>
         <br />
         <br />
         <button class="btn" style="height: 120px; background: rgba(256, 256, 256, 0.18);">Put your finger here</button>
@@ -147,6 +148,9 @@
             location.search = "?user=" + $('#user').val();
         }
 
+        function showConnectBtn() {
+            $('.connect').show()
+        }
         var defaultAngle = {
             a: 0,
             b: 0,
@@ -179,7 +183,7 @@
         }
 
         function setResult(result) {
-            document.getElementById('result').innerHTML = 'RESULT: ' + result;
+            console.log(result)
         }
 
         function toQuaternionFromEuler(alpha, beta, gamma) {
@@ -251,8 +255,10 @@
             console.log($('#user').value, user)
             if (user != null) {
                 $('#user').val(user)
+                testDeviceOrientation()
                 wSocket = connectTo(user);
                 wSocket.onopen = function (event) {
+                    $('.connect').hide()
                     window.addEventListener('deviceorientation', function (orientationEvent) {
                         console.log(orientationEvent)
                         currAngle = {
