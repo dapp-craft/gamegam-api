@@ -14,12 +14,17 @@
     <div class="pin">
         <h1 class="text">ENTER PIN</h1>
         <input class="btn_input" type="number" id="user" name="user" placeholder="Pin" />
-        <button id="connect" class="btn connect" onclick="connect()">connect</button>
+        <button id="connect" class="btn connect" onclick="connect()">Connect</button>
+        <button class="btn connect" onclick="testDeviceOrientation()">Start</button>
         <br />
         <br />
-        <button class="btn" onclick="testDeviceOrientation()">Start</button>
         <button class="btn" onclick="reset(0)">Calibrate</button>
         <button class="btn" onclick="sendCommand('on')">On</button>
+        <br />
+        <br />
+        <br />
+        <br />
+        <button class="btn" style="height: 100px">Put your finger here</button>
     </div>
     <div class="btn_block">
 
