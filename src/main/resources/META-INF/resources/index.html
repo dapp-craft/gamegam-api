@@ -11,29 +11,28 @@
     <div class="field">
         <div class="ball"></div>
     </div>
-    <div class="pin">       
-         <br />
-         <br />
-         <br />
-<!--         <br />-->
-<!--        <h1 class="text">ENTER PIN</h1>-->
+    <div class="pin">
+        <br />
+        <br />
+        <br />
+        <br />
+        <!--         <br />-->
+        <!--        <h1 class="text">ENTER PIN</h1>-->
         <input class="btn_input" type="number" id="user" name="user" placeholder="PIN" onchange="showConnectBtn()" />
         <button id="connect" class="btn connect" onclick="connect()">Connect</button>
         <button id="btnStart" class="btn connect" onclick="testDeviceOrientation()">Start</button>
-<!--        <br />-->
+        <!--        <br />-->
         <br />
         <br />
-<!--        <button class="btn" onclick="reset(0)">Calibrate</button>-->
+        <!--        <button class="btn" onclick="reset(0)">Calibrate</button>-->
         <button class="btn" onclick="sendCommand('on')">Sword Switch</button>
         <button class="btn" onclick="sendCommand('changeColor')">Sword Color</button>
         <button class="btn" onclick="sendCommand('changeHands')">Change Hands</button>
         <br />
-        <button class="btn" onclick="alert('1. Enter PIN. 2. Press Connect. 3. Press Start. 4. Shake your phone.')">Help</button>
+        <button class="btn"
+            onclick="alert('1. Enter PIN. 2. Press Connect. 3. Press Start. 4. Shake your phone.')">Help</button>
         <br />
-        <button class="btn" style="height: 120px; background: rgba(256, 256, 256, 0.18);-moz-user-select: none;
--khtml-user-select: none;
--webkit-user-select: none;
-user-select: none;">Put your finger here</button>
+        <button class="btn">Put your finger here</button>
     </div>
     <div class="btn_block">
 
@@ -114,6 +113,12 @@ user-select: none;">Put your finger here</button>
             text-transform: uppercase;
             font-weight: 600;
             color: #64516c;
+            height: 120px;
+            background: rgba(256, 256, 256, 0.18);
+            -moz-user-select: none;
+            -khtml-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .btn.connect {
@@ -184,7 +189,7 @@ user-select: none;">Put your finger here</button>
                 return setResult('DeviceOrientationEvent.requestPermission not detected')
             }
             DeviceOrientationEvent.requestPermission().then(function (result) {
-                 $('#btnStart').hide()
+                $('#btnStart').hide()
                 return setResult(result);
             });
         }
@@ -194,26 +199,26 @@ user-select: none;">Put your finger here</button>
         }
 
         function toQuaternionFromEuler(alpha, beta, gamma) {
-              const degToRad = Math.PI / 180
+            const degToRad = Math.PI / 180
 
-              const x = (beta || 0) * degToRad;
-              const y = (gamma || 0) * degToRad;
-              const z = (alpha || 0) * degToRad;
+            const x = (beta || 0) * degToRad;
+            const y = (gamma || 0) * degToRad;
+            const z = (alpha || 0) * degToRad;
 
-              const cZ = Math.cos(z * 0.5);
-              const sZ = Math.sin(z * 0.5);
-              const cY = Math.cos(y * 0.5);
-              const sY = Math.sin(y * 0.5);
-              const cX = Math.cos(x * 0.5);
-              const sX = Math.sin(x * 0.5);
+            const cZ = Math.cos(z * 0.5);
+            const sZ = Math.sin(z * 0.5);
+            const cY = Math.cos(y * 0.5);
+            const sY = Math.sin(y * 0.5);
+            const cX = Math.cos(x * 0.5);
+            const sX = Math.sin(x * 0.5);
 
-              const qx = sX * cY * cZ - cX * sY * sZ;
-              const qy = cX * sY * cZ + sX * cY * sZ;
-              const qz = cX * cY * sZ + sX * sY * cZ;
-              const qw = cX * cY * cZ - sX * sY * sZ;
+            const qx = sX * cY * cZ - cX * sY * sZ;
+            const qy = cX * sY * cZ + sX * cY * sZ;
+            const qz = cX * cY * sZ + sX * sY * cZ;
+            const qw = cX * cY * cZ - sX * sY * sZ;
 
-              return [qx, qy, qz, qw];
-            }
+            return [qx, qy, qz, qw];
+        }
 
         var ball = document.querySelector('.ball');
         var globalX;
@@ -246,7 +251,7 @@ user-select: none;">Put your finger here</button>
                 const c = JSON.stringify({
                     type: 'cmd',
                     cmd: cmd
-                    }
+                }
                 )
                 console.log(c)
                 wSocket.send(c);
