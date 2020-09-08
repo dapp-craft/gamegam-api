@@ -34,3 +34,4 @@ pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
 release.properties
+src/main/resources/cloud_keys/google_cloud_dcl.json
