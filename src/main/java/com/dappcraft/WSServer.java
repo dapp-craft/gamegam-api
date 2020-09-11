@@ -71,11 +71,18 @@ public class WSServer {
             WsMessage msg = parse(message);
             if (msg.getType().equals("init")) {
                 String pin = msg.getPin();
-                if (!pinCode.equals(pin)) {
-                    LOG.errorv("PIN codes not equals: {0} {1}!={2}", msg.getUserName(), pin, pinCode);
+                String username = msg.getUserName();
+                if (username.isEmpty()) {
+                    LOG.errorv("init data not valid: {0} {1}", pinCode, message);
+                    userPins.put(pinCode, "UnknownGuest-" +pinCode);
+                    LOG.warnv("User: {0} PIN: {1}", username, pinCode);
+                } else {
+                    if (!pinCode.equals(pin)) {
+                        LOG.errorv("PIN codes not equals: {0} {1}!={2}", username, pin, pinCode);
+                    }
+                    userPins.put(pinCode, username);
+                    LOG.infov("User: {0} PIN: {1}", username, pinCode);
                 }
-                userPins.put(pinCode, msg.getUserName());
-                LOG.infov("User: {0} PIN: {1}", msg.getUserName(), pinCode);
             } else if (msg.getType().equals("score")) {
                 String userName = userPins.get(pinCode);
                 LOG.infov("Score {0}({1}) - {2} - LEVEL: {3}; KILLS: {4}", userName, pinCode, msg.getScore(), msg.getLevel(), msg.getKills());

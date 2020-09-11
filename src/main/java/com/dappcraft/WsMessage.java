@@ -71,7 +71,7 @@ public class WsMessage {
     }
 
     public String getUserName() {
-        if (this.getData().containsKey("name"))
+        if (this.getData() != null && this.getData().containsKey("name"))
             return this.getData().get("name");
         return "";
     }
