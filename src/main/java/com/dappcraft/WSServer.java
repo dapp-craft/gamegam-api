@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.gson.Gson;
+import io.vertx.core.impl.ConcurrentHashSet;
 import org.jboss.logging.Logger;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -15,119 +16,108 @@ import javax.websocket.OnOpen;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import javax.websocket.Session;
+import java.util.Timer;
 
 
-@ServerEndpoint("/{type}/{pinCode}")
+@ServerEndpoint("/{position}/{realm}")
 @ApplicationScoped
 public class WSServer {
-    Map<String, Session> sceneSessions = new ConcurrentHashMap<>();
-    Map<String, Session> controllerSessions = new ConcurrentHashMap<>();
-    Map<String, String> userPins = new ConcurrentHashMap<>();
+    Map<String, Set<Session>> sceneSessions = new ConcurrentHashMap<>();
+    Map<String, String> userScenes = new ConcurrentHashMap<>();
+    Map<String, Timer> sceneTimers = new ConcurrentHashMap<>();
 
-    @Inject
-    Store store;
 
     private static final Logger LOG = Logger.getLogger(WSServer.class);
     private Gson gson = new Gson();
+    private Random rnd = new Random();
+
     @OnOpen
-    public void onOpen(Session session, @PathParam("type") String type, @PathParam("pinCode") String pinCode) {
-        if(type.equals("scene")) {
-            sceneSessions.put(pinCode, session);
-            LOG.infov("Open scene socket {0}", pinCode);
-        } else if (type.equals("controller")) {
-            controllerSessions.put(pinCode, session);
-            LOG.infov("Open controller socket {0}", pinCode);
+    public void onOpen(Session session, @PathParam("position") String position, @PathParam("realm") String realm) {
+        String sceneId = position + '/' + realm;
+        if (!sceneSessions.containsKey(sceneId)) {
+            ConcurrentHashSet<Session> sessions = new ConcurrentHashSet<>();
+            sessions.add(session);
+            sceneSessions.put(sceneId, sessions);
+            LOG.infov("Open scene socket {0} first time", sceneId);
+            Timer timer = new Timer();
+            sceneTimers.put(sceneId, timer);
+
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    if (sessions.size() == 0) return;
+                    long l = System.currentTimeMillis();
+
+                    WsMessage msg = new WsMessage();
+                    msg.setType("update");
+                    msg.setTimestamp(l);
+                    String message = gson.toJson(msg);
+                    sessions.forEach(s -> {
+                        if (s.isOpen()) {
+                            s.getAsyncRemote().sendObject(message, result -> {
+                                if (result.getException() != null) {
+                                    LOG.errorv(result.getException(), "Unable to send message: {0}", sceneId);
+                                }
+                            });
+                        }
+                    });
+                    LOG.infov("Broadcast timestamp {0} update {1}, active sessions {2}", l, sceneId, sessions.size());
+                }
+            }, 1000, 1000);
         } else {
-            LOG.errorv("Open socket error, unknown type {0}, {1}", type, pinCode);
+            Set<Session> sessions = sceneSessions.get(sceneId);
+            sessions.add(session);
+            LOG.infov("Open scene socket {0} connected users {1}", sceneId, sessions.size());
         }
     }
 
     @OnClose
-    public void onClose(Session session, @PathParam("type") String type, @PathParam("pinCode") String pinCode) {
-        if(type.equals("scene")) {
-            sceneSessions.remove(pinCode);
-            LOG.infov("Close scene socket {0}", pinCode);
-        } else if (type.equals("controller")) {
-            controllerSessions.remove(pinCode);
-            LOG.infov("Close controller socket {0}", pinCode);
+    public void onClose(Session session, @PathParam("position") String position, @PathParam("realm") String realm) {
+        String sceneId = position + '/' + realm;
+        Set<Session> sessions = sceneSessions.get(sceneId);
+        if(sessions == null) {
+            LOG.errorv("Close socket error, unknown sceneId {0}", sceneId);
         } else {
-            LOG.errorv("Close socket error, unknown type {0}, {1}", type, pinCode);
+            boolean remove = sessions.remove(session);
+            LOG.infov("Close scene socket {0} = {1}", sceneId, remove);
+            if (sessions.isEmpty()) {
+               sceneSessions.remove(sceneId);
+                LOG.infov("Scene {0} empty", sceneId, remove);
+                sceneTimers.get(sceneId).cancel();
+                sceneTimers.remove(sceneId);
+            }
         }
     }
 
     @OnError
-    public void onError(Session session, @PathParam("type") String type, @PathParam("pinCode") String pinCode, Throwable throwable) {
-        LOG.errorv(throwable, "Socket error, unknown type {0}, {1}", type, pinCode);
-        if(type.equals("scene")) {
-            sceneSessions.remove(pinCode);
-        } else if (type.equals("controller")) {
-            controllerSessions.remove(pinCode);
-        }
+    public void onError(Session session, @PathParam("position") String position, @PathParam("realm") String realm, Throwable throwable) {
+        LOG.errorv(throwable, "Socket error, unknown position {0}, {1}", position, realm);
     }
 
     @OnMessage
-    public void onMessage(String message, @PathParam("type") String type, @PathParam("pinCode") String pinCode) {
-        if(type.equals("scene")) {
-            WsMessage msg = parse(message);
-            if (msg.getType().equals("init")) {
-                String pin = msg.getPin();
-                String username = msg.getUserName();
-                if (username.isEmpty()) {
-                    LOG.errorv("init data not valid: {0} {1}", pinCode, message);
-                    userPins.put(pinCode, "UnknownGuest-" +pinCode);
-                    LOG.warnv("User: {0} PIN: {1}", username, pinCode);
-                } else {
-                    if (!pinCode.equals(pin)) {
-                        LOG.errorv("PIN codes not equals: {0} {1}!={2}", username, pin, pinCode);
-                    }
-                    userPins.put(pinCode, username);
-                    LOG.infov("User: {0} PIN: {1}", username, pinCode);
-                }
-            } else if (msg.getType().equals("score")) {
-                String userName = userPins.get(pinCode);
-                LOG.infov("Score {0}({1}) - {2} - LEVEL: {3}; KILLS: {4}", userName, pinCode, msg.getScore(), msg.getLevel(), msg.getKills());
-                ScoreResult newUserScore = new ScoreResult(msg.getScore().longValue(), msg.getLevel().longValue(), msg.getKills().longValue());
-                List<ScoreResult> results = store.saveScore(userName, newUserScore);
-                WsMessage resultMsg = new WsMessage();
-                resultMsg.setType("scoreTable");
-                resultMsg.setScoreTable(results);
-                sceneSessions.get(pinCode).getAsyncRemote().sendObject(gson.toJson(resultMsg), result -> {
-                    if (result.getException() != null) {
-                        LOG.errorv(result.getException(), "Unable to send message to scene for {0}", pinCode);
-                    }
-                });
+    public void onMessage(String message, @PathParam("position") String position, @PathParam("realm") String realm) {
+        String sceneId = position + '/' + realm;
+        WsMessage msg = parse(message);
+        if (msg.getType().equals("init")) {
+            String username = msg.getUserName();
+            if (username.isEmpty()) {
+                LOG.errorv("init data not valid: {0} {1}", sceneId, message);
             } else {
-                LOG.infov("Unknown onMessage scene socket {0}: {1}", pinCode, message);
+                userScenes.put(username, sceneId);
+                LOG.infov("User: {0} PIN: {1}", username, sceneId);
             }
-        } else if (type.equals("controller")) {
-//            WsMessage msg = parse(message);
-//            LOG.infov("controller msg {0}, {1}", pinCode, msg.getType());
-            if (sceneSessions.containsKey((pinCode))) {
-//                if (msg.getType().equals("rotate")) {
-//                    LOG.infov("send {0}, {1}, {2}, {3}", msg.getQuat()[0], msg.getQuat()[1], msg.getQuat()[2], msg.getQuat()[3]);
-//                }
-//                    message = gson.toJson(msg.getQuat());
-                    sceneSessions.get(pinCode).getAsyncRemote().sendObject(message, result -> {
-                        if (result.getException() != null) {
-                            LOG.errorv(result.getException(), "Unable to send message to scene for {0}", pinCode);
-                        }
-                    });
-            }
-        } else {
-            LOG.errorv("onMessage error, unknown type {0}, {1}", type, pinCode);
         }
     }
 
     private WsMessage parse(String json) {
-
         return gson.fromJson(json, WsMessage.class);
     }
 
-    private void broadcast(String message) {
-        sceneSessions.values().forEach(s -> {
+    private void broadcast(String sceneId, String message) {
+        sceneSessions.get(sceneId).forEach(s -> {
             s.getAsyncRemote().sendObject(message, result -> {
                 if (result.getException() != null) {
-                    System.out.println("Unable to send message: " + result.getException());
+                    LOG.errorv( result.getException(), "Unable to send message: {0}", sceneId);
                 }
             });
         });

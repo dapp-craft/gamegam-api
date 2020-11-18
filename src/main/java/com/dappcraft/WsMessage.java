@@ -6,6 +6,7 @@ import java.util.Map;
 public class WsMessage {
     private String type;
     private String cmd;
+    private Long timestamp;
     private String pin;
     private double[] quat;
     private Map<String, String> data;
@@ -86,5 +87,13 @@ public class WsMessage {
 
     public void setPin(String pin) {
         this.pin = pin;
+    }
+
+    public Long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Long timestamp) {
+        this.timestamp = timestamp;
     }
 }
