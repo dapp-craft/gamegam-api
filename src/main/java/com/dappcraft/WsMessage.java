@@ -14,6 +14,12 @@ public class WsMessage {
     private Integer score;
     private Integer kills;
     private List<ScoreResult>  scoreTable;
+    private double currPos;
+    private double nextPos;
+    private double fraction;
+    private Double freq;
+    private Double startPos;
+    private Double endPos;
 
     public String getType() {
         return type;
@@ -95,5 +101,53 @@ public class WsMessage {
 
     public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public void setCurrPos(double currPos) {
+        this.currPos = currPos;
+    }
+
+    public double getCurrPos() {
+        return currPos;
+    }
+
+    public void setNextPos(double nextPos) {
+        this.nextPos = nextPos;
+    }
+
+    public double getNextPos() {
+        return nextPos;
+    }
+
+    public void setFraction(double fraction) {
+        this.fraction = fraction;
+    }
+
+    public double getFraction() {
+        return fraction;
+    }
+
+    public Double getFreq() {
+        return freq;
+    }
+
+    public void setFreq(Double freq) {
+        this.freq = freq;
+    }
+
+    public Double getStartPos() {
+        return startPos;
+    }
+
+    public void setStartPos(Double startPos) {
+        this.startPos = startPos;
+    }
+
+    public Double getEndPos() {
+        return endPos;
+    }
+
+    public void setEndPos(Double endPos) {
+        this.endPos = endPos;
     }
 }

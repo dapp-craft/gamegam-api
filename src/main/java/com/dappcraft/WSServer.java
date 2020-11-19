@@ -25,11 +25,25 @@ public class WSServer {
     Map<String, Set<Session>> sceneSessions = new ConcurrentHashMap<>();
     Map<String, String> userScenes = new ConcurrentHashMap<>();
     Map<String, Timer> sceneTimers = new ConcurrentHashMap<>();
+    Map<String, Map<String, Object>> sceneParams = new ConcurrentHashMap<>();
 
 
     private static final Logger LOG = Logger.getLogger(WSServer.class);
     private Gson gson = new Gson();
     private Random rnd = new Random();
+
+    private int updatePeriod = 1000;
+
+    private static double fraction(Long timestamp, Double freq) {
+        double period = 1000 / freq;
+        double fraction = (timestamp % period) / period;
+        if (fraction > 0.5) {
+            fraction = (1-fraction) * 2;
+        } else {
+            fraction = fraction * 2;
+        }
+        return fraction;
+    }
 
     @OnOpen
     public void onOpen(Session session, @PathParam("position") String position, @PathParam("realm") String realm) {
@@ -39,17 +53,38 @@ public class WSServer {
             sessions.add(session);
             sceneSessions.put(sceneId, sessions);
             LOG.infov("Open scene socket {0} first time", sceneId);
+            Map<String, Object> params;
+            if (!sceneParams.containsKey(sceneId)) {
+                params = new ConcurrentHashMap<>();
+                sceneParams.put(sceneId, params);
+                params.put("freq", 1.0/60);
+                params.put("startPos", 0.);
+                params.put("endPos", 10.);
+            } else {
+                params = sceneParams.get(sceneId);
+            }
+
             Timer timer = new Timer();
             sceneTimers.put(sceneId, timer);
 
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    if (sessions.size() == 0) return;
+                    if (sessions.isEmpty()) return;
+                    Double freq = (Double) params.get("freq");
+                    Double startPos = (Double) params.get("startPos");
+                    Double endPos = (Double) params.get("endPos");
+
                     long l = System.currentTimeMillis();
+                    double fraction = fraction(l, freq);
+                    double currPos = (endPos - startPos) * fraction;
+                    double nextPos = (endPos - startPos) * fraction(l+updatePeriod, freq);
 
                     WsMessage msg = new WsMessage();
                     msg.setType("update");
+                    msg.setCurrPos(currPos);
+                    msg.setNextPos(nextPos);
+                    msg.setFraction(fraction);
                     msg.setTimestamp(l);
                     String message = gson.toJson(msg);
                     sessions.forEach(s -> {
@@ -63,7 +98,7 @@ public class WSServer {
                     });
                     LOG.infov("Broadcast timestamp {0} update {1}, active sessions {2}", l, sceneId, sessions.size());
                 }
-            }, 1000, 1000);
+            }, updatePeriod, updatePeriod);
         } else {
             Set<Session> sessions = sceneSessions.get(sceneId);
             sessions.add(session);
@@ -105,6 +140,21 @@ public class WSServer {
             } else {
                 userScenes.put(username, sceneId);
                 LOG.infov("User: {0} PIN: {1}", username, sceneId);
+            }
+        } else if (msg.getType().equals("changeParams")) {
+            Map<String, Object> params = sceneParams.get(sceneId);
+            if (params == null) {
+                LOG.errorv("sceneParams not found: {0}", sceneId);
+                return;
+            }
+            if (msg.getFreq() != null) {
+                params.put("freq", msg.getFreq());
+            }
+            if (msg.getStartPos() != null) {
+                params.put("startPos", msg.getStartPos());
+            }
+            if (msg.getEndPos() != null) {
+                params.put("endPos", msg.getEndPos());
             }
         }
     }
