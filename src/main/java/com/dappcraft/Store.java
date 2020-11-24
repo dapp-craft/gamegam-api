@@ -45,9 +45,9 @@ public class Store {
         LOG.info("Firestore connected");
     }
 
-    public Timestamp write(String userName, ScoreResult score) {
+    public Timestamp write(String collection, String userName, ScoreResult score) {
         try {
-            DocumentReference docRef = db.collection("mars_scores").document(userName);
+            DocumentReference docRef = db.collection(collection).document(userName);
             ApiFuture<WriteResult> result = docRef.set(score);
             return result.get().getUpdateTime();
         } catch (Exception e) {
@@ -56,9 +56,9 @@ public class Store {
         }
     }
 
-    public List<ScoreResult> getResults() {
+    public List<ScoreResult> getResults(String collection) {
         try {
-            Query query = db.collection("mars_scores").orderBy("score", Query.Direction.DESCENDING).limit(10);
+            Query query = db.collection(collection).orderBy("score", Query.Direction.DESCENDING).limit(10);
             ApiFuture<QuerySnapshot> querySnapshot = query.get();
             List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
             List<ScoreResult> res = new ArrayList<>();
@@ -74,8 +74,8 @@ public class Store {
         }
     }
 
-    public List<ScoreResult> saveScore(String userName, ScoreResult score) {
-        List<ScoreResult> results = getResults();
+    public List<ScoreResult> saveScore(String collection, String userName, ScoreResult score) {
+        List<ScoreResult> results = getResults(collection);
 
         boolean foundUser = false;
 
@@ -83,7 +83,7 @@ public class Store {
             if (result.getUserName().equals(userName)) {
                 foundUser = true;
                 if (result.getScore() < score.getScore()) {
-                    write(userName, score);
+                    write(collection, userName, score);
                     result.setScore(score.getScore());
                     result.setLevel(score.getLevel());
                     result.setKills(score.getKills());
@@ -92,8 +92,8 @@ public class Store {
             }
         }
         if (!foundUser) {
-            write(userName, score);
-            results = getResults();
+            write(collection, userName, score);
+            results = getResults(collection);
         }
         return results;
     }

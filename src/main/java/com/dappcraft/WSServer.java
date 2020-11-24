@@ -21,6 +21,7 @@ import javax.websocket.Session;
 @ApplicationScoped
 public class WSServer {
     Map<String, Session> sceneSessions = new ConcurrentHashMap<>();
+//    Map<String, Session> alienSessions = new ConcurrentHashMap<>();
     Map<String, Session> controllerSessions = new ConcurrentHashMap<>();
     Map<String, String> userPins = new ConcurrentHashMap<>();
 
@@ -31,12 +32,16 @@ public class WSServer {
     private Gson gson = new Gson();
     @OnOpen
     public void onOpen(Session session, @PathParam("type") String type, @PathParam("pinCode") String pinCode) {
-        if(type.equals("scene")) {
+        if(type.equals("scene") || type.equals("alien")) {
             sceneSessions.put(pinCode, session);
             LOG.infov("Open scene socket {0}", pinCode);
         } else if (type.equals("controller")) {
             controllerSessions.put(pinCode, session);
             LOG.infov("Open controller socket {0}", pinCode);
+//        } else if(type.equals("alien")) {
+//            String address = pinCode;
+//            alienSessions.put(address, session);
+//            LOG.infov("Open alien socket {0}", address);
         } else {
             LOG.errorv("Open socket error, unknown type {0}, {1}", type, pinCode);
         }
@@ -44,12 +49,16 @@ public class WSServer {
 
     @OnClose
     public void onClose(Session session, @PathParam("type") String type, @PathParam("pinCode") String pinCode) {
-        if(type.equals("scene")) {
+        if(type.equals("scene") || type.equals("alien")) {
             sceneSessions.remove(pinCode);
             LOG.infov("Close scene socket {0}", pinCode);
         } else if (type.equals("controller")) {
             controllerSessions.remove(pinCode);
             LOG.infov("Close controller socket {0}", pinCode);
+//        } else if(type.equals("alien")) {
+//            String address = pinCode;
+//            alienSessions.remove(address);
+//            LOG.infov("Close alien socket {0}", address);
         } else {
             LOG.errorv("Close socket error, unknown type {0}, {1}", type, pinCode);
         }
@@ -58,7 +67,7 @@ public class WSServer {
     @OnError
     public void onError(Session session, @PathParam("type") String type, @PathParam("pinCode") String pinCode, Throwable throwable) {
         LOG.errorv(throwable, "Socket error, unknown type {0}, {1}", type, pinCode);
-        if(type.equals("scene")) {
+        if(type.equals("scene") || type.equals("alien")) {
             sceneSessions.remove(pinCode);
         } else if (type.equals("controller")) {
             controllerSessions.remove(pinCode);
@@ -67,7 +76,11 @@ public class WSServer {
 
     @OnMessage
     public void onMessage(String message, @PathParam("type") String type, @PathParam("pinCode") String pinCode) {
-        if(type.equals("scene")) {
+        if(type.equals("scene") || type.equals("alien")) {
+            String collection = "mars_scores";
+            if (type.equals("alien")) {
+                collection = "alien_scores";
+            }
             WsMessage msg = parse(message);
             if (msg.getType().equals("init")) {
                 String pin = msg.getPin();
@@ -87,7 +100,7 @@ public class WSServer {
                 String userName = userPins.get(pinCode);
                 LOG.infov("Score {0}({1}) - {2} - LEVEL: {3}; KILLS: {4}", userName, pinCode, msg.getScore(), msg.getLevel(), msg.getKills());
                 ScoreResult newUserScore = new ScoreResult(msg.getScore().longValue(), msg.getLevel().longValue(), msg.getKills().longValue());
-                List<ScoreResult> results = store.saveScore(userName, newUserScore);
+                List<ScoreResult> results = store.saveScore(collection, userName, newUserScore);
                 WsMessage resultMsg = new WsMessage();
                 resultMsg.setType("scoreTable");
                 resultMsg.setScoreTable(results);
@@ -96,6 +109,9 @@ public class WSServer {
                         LOG.errorv(result.getException(), "Unable to send message to scene for {0}", pinCode);
                     }
                 });
+            } else if (msg.getType().equals("register")) {
+                String userName = userPins.get(pinCode);
+                LOG.infov("Score {0}({1}) - {2}", userName, pinCode, message);
             } else {
                 LOG.infov("Unknown onMessage scene socket {0}: {1}", pinCode, message);
             }
