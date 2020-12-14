@@ -66,6 +66,14 @@
       <artifactId>firebase-admin</artifactId>
       <version>7.0.0</version>
     </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-client</artifactId>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
