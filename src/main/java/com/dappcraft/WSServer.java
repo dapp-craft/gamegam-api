@@ -1,6 +1,5 @@
 package com.dappcraft;
 
-import java.math.BigDecimal;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -45,7 +44,6 @@ public class WSServer {
     String broxusApiKey = "imEUINZFjEaRIbNiDPI4Yk1oj7Oo-u0TaX3WIURXEEok-z99ibq_yG-XMsY8Rm1p";
     String broxusSecretKey = "7g-OoAojQ-24TIDKxRkhlVlRfmzHhjSBn6kGWRLNlxJd6VdIwNKHCTvl0hMXKEBG";
     String broxusWorkspaceId = "f6e28519-e6b5-4fc1-a6a7-e0dd7dd02bd7";
-
 
     private static final Logger LOG = Logger.getLogger(WSServer.class);
     private Gson gson = new Gson();
@@ -169,7 +167,6 @@ public class WSServer {
         broxus();
 
         transfer(check.user_id.toString(), 0.001);
-
         String sceneId = position + '/' + realm;
         if (!sceneSessions.containsKey(sceneId)) {
             ConcurrentHashSet<Session> sessions = new ConcurrentHashSet<>();
