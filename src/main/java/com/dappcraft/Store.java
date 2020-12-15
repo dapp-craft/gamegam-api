@@ -152,6 +152,29 @@ public class Store {
         }
     }
 
+    public boolean findDuplicatesTelegram(String userId) {
+        try {
+            UserInfo user = getUser(userId);
+            String telegramId = user.getTelegramId();
+            if (telegramId == null) return true;
+            ApiFuture<QuerySnapshot> future = db.collection(userCollection).whereEqualTo("telegramId", telegramId).get();
+            List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+            if (documents.size() <= 1) return false;
+
+            LOG.errorv("Found users with same Telegram Id {0} for user Id {1}", telegramId, userId);
+            for (QueryDocumentSnapshot document : documents) {
+                UserInfo userInfo = document.toObject(UserInfo.class);
+                LOG.errorv("Duplicates Telegram Id {0}: User Id {1}", telegramId, document.getId());
+                if (userInfo.getRewardClaimed()) return true;
+                if (userInfo.getReward() != null) return true;
+            }
+            return false;
+        } catch (Exception e) {
+            LOG.error("Firestore findDuplicatesTelegram", e);
+            return true;
+        }
+    }
+
     public Map<String, Prize> getPrizes() {
         try {
             Map<String, Prize> results = new HashMap<>();

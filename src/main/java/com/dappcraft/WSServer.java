@@ -13,6 +13,7 @@ import io.vertx.core.impl.ConcurrentHashSet;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
 
+import javax.annotation.PostConstruct;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.enterprise.context.ApplicationScoped;
@@ -55,6 +56,17 @@ public class WSServer {
     private Random rnd = new Random();
 
     private int updatePeriod = 1000;
+
+    @PostConstruct
+    public void init() {
+        LOG.infov("init");
+        //            setupPrizes();
+
+        for (Prize prize : store.getPrizes().values()) {
+            LOG.infov("prize {0} {1}", prize.getInitCount(), prize.getAmount());
+        }
+        broxus();
+    }
 
     private static double fraction(Long timestamp, Double freq) {
         double period = 1000 / freq;
@@ -144,18 +156,28 @@ public class WSServer {
         }
     }
 
+    private Double checkTonBalance() {
+        List<Balance> balances = getBalance();
+        Double tonBalance = 0.;
+        if (balances != null) {
+            for (Balance balance : balances) {
+                LOG.infov("balance {0}, {1} {2}, {3} frozen: {4} total: {5}", balance.addressType, balance.userAddress, balance.available, balance.currency, balance.frozen, balance.total);
+                if (balance.currency.equals("TON")) {
+                    tonBalance = balance.available;
+                }
+            }
+        }
+        return tonBalance;
+    }
+
     public void broxus() {
         List<Workspace> result = broxusService.workspaces(broxusApiKey);
 
         if (!result.isEmpty()) {
             LOG.infov("broxusService {0}, {1} {2}", result.size(), result.get(0).id, result.get(0).name);
+            checkTonBalance();
 
-            List<Balance> balances = getBalance();
-            if (balances != null) {
-                for (Balance balance : balances) {
-                    LOG.infov("balance {0}, {1} {2}, {3}", balance.addressType, balance.userAddress, balance.available, balance.currency);
-                }
-            }
+
 
 //            getAddress();
 
@@ -192,6 +214,9 @@ public class WSServer {
     }
 
     public String onGetRandomReward(String userId) {
+        if (store.findDuplicatesTelegram(userId)) {
+            return null;
+        }
         String reward = store.randomPrize(userId);
         LOG.infov("randomPrize for {0} - {1}", userId, reward);
         return reward;
@@ -201,6 +226,12 @@ public class WSServer {
         UserInfo userInfo1 = store.getUser(userId);
 
         if(!userInfo1.getRewardClaimed() && userInfo1.getReward() != null) {
+            Double balance = checkTonBalance();
+            if (balance < userInfo1.getReward()) {
+                LOG.errorv("No balance {0} for claim reward {1}", balance, userInfo1.getReward());
+                return false;
+            }
+
             boolean transfer = transfer(userInfo1.getTelegramId(), userInfo1.getReward());
             if (transfer) {
                 userInfo1.setRewardClaimed(true);
@@ -212,17 +243,25 @@ public class WSServer {
     }
 
     private void setupPrizes() {
+        Map<Integer, Integer> p = new HashMap<>();
+        p.put(1000, 1);
+        p.put(100, 30);
+        p.put(50, 100);
+        p.put(25, 200);
+        p.put(10, 500);
+        p.put(5, 1200);
+
         Prize prize = new Prize();
 
-        prize.setAmount(0.001);
-        prize.setInitCount(10L);
-        prize.setCount(10L);
-        store.updatePrize("5", prize);
-
-        prize.setAmount(0.002);
-        prize.setInitCount(1L);
-        prize.setCount(1L);
-        store.updatePrize("10", prize);
+        for (Map.Entry<Integer, Integer> entry : p.entrySet()) {
+            int amount = entry.getKey();
+            int count = entry.getValue();
+//            prize.setAmount((double) amount);
+            prize.setAmount((double) amount * 0.001);
+            prize.setInitCount(count);
+            prize.setCount(count);
+            store.updatePrize(String.valueOf(amount), prize);
+        }
     }
 
     @OnOpen
@@ -286,10 +325,7 @@ public class WSServer {
                 LOG.infov("Open scene socket {0} connected users {1}", sceneId, sessions.size());
             }
         } else {
-            for (Prize prize : store.getPrizes().values()) {
-                LOG.infov("prize {0} {1}", prize.getInitCount(), prize.getAmount());
-            }
-            broxus();
+            LOG.infov("Open connection {0} {1}", realm, position);
         }
     }
 
