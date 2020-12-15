@@ -1,4 +1,4 @@
-package com.dappcraft;
+package com.dappcraft.db;
 
 public class ScoreResult {
     private String userName;

@@ -1,5 +1,7 @@
 package com.dappcraft;
 
+import com.dappcraft.db.Prize;
+import com.dappcraft.db.UserInfo;
 import com.google.api.core.ApiFuture;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.Timestamp;
@@ -12,14 +14,15 @@ import org.jboss.logging.Logger;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Singleton
 public class Store {
     Firestore db;
-
     private static final Logger LOG = Logger.getLogger(Store.class);
+
+    String prizeCollection = "ton-airdrop-prizes";
+    String userCollection = "ton-airdrop-users";
 
     Store() {
         try {
@@ -45,10 +48,10 @@ public class Store {
         LOG.info("Firestore connected");
     }
 
-    public Timestamp write(String collection, String userName, ScoreResult score) {
+    public Timestamp updateUser(String id, UserInfo info) {
         try {
-            DocumentReference docRef = db.collection(collection).document(userName);
-            ApiFuture<WriteResult> result = docRef.set(score);
+            DocumentReference docRef = db.collection(userCollection).document(id);
+            ApiFuture<WriteResult> result = docRef.set(info);
             return result.get().getUpdateTime();
         } catch (Exception e) {
             LOG.error("Firestore write", e);
@@ -56,45 +59,111 @@ public class Store {
         }
     }
 
-    public List<ScoreResult> getResults(String collection) {
+    public UserInfo getUser(String id) {
         try {
-            Query query = db.collection(collection).orderBy("score", Query.Direction.DESCENDING).limit(10);
-            ApiFuture<QuerySnapshot> querySnapshot = query.get();
-            List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-            List<ScoreResult> res = new ArrayList<>();
-            for (QueryDocumentSnapshot document : documents) {
-                ScoreResult scoreResult = new ScoreResult(document.getLong("score"), document.getLong("level"), document.getLong("kills"));
-                scoreResult.setUserName(document.getId());
-                res.add(scoreResult);
-            }
-            return res;
+            DocumentReference docRef = db.collection(userCollection).document(id);
+            ApiFuture<DocumentSnapshot> result = docRef.get();
+            return result.get().toObject(UserInfo.class);
         } catch (Exception e) {
-            LOG.error("Firestore write", e);
-            return new ArrayList<>();
+            LOG.error("Firestore get", e);
+            return null;
         }
     }
 
-    public List<ScoreResult> saveScore(String collection, String userName, ScoreResult score) {
-        List<ScoreResult> results = getResults(collection);
+    public Timestamp updatePrize(String id, Prize info) {
+        try {
+            DocumentReference docRef = db.collection(prizeCollection).document(id);
+            ApiFuture<WriteResult> result = docRef.set(info);
+            return result.get().getUpdateTime();
+        } catch (Exception e) {
+            LOG.error("Firestore write", e);
+            return null;
+        }
+    }
 
-        boolean foundUser = false;
+    public Prize getPrize(String id) {
+        try {
+            DocumentReference docRef = db.collection(prizeCollection).document(id);
+            ApiFuture<DocumentSnapshot> result = docRef.get();
+            return result.get().toObject(Prize.class);
+        } catch (Exception e) {
+            LOG.error("Firestore get", e);
+            return null;
+        }
+    }
 
-        for (ScoreResult result : results) {
-            if (result.getUserName().equals(userName)) {
-                foundUser = true;
-                if (result.getScore() < score.getScore()) {
-                    write(collection, userName, score);
-                    result.setScore(score.getScore());
-                    result.setLevel(score.getLevel());
-                    result.setKills(score.getKills());
+    public String randomPrize(String userId) {
+        try {
+            final CollectionReference prizeCollectionRef = db.collection(prizeCollection);
+            final DocumentReference userDocRef = db.collection(userCollection).document(userId);
+            ApiFuture<String> futureTransaction = db.runTransaction(transaction -> {
+                DocumentSnapshot userDocSnapshot = transaction.get(userDocRef).get();
+                UserInfo user = userDocSnapshot.toObject(UserInfo.class);
+
+                if (user.getJoinGroup() && !user.getRewardClaimed() && user.getReward() == null && user.getTelegramId() != null) {
+                    ApiFuture<QuerySnapshot> querySnapshotApiFuture = transaction.get(prizeCollectionRef.limit(100));
+
+                    Map<DocumentReference, Prize> results = new HashMap<>();
+                    List<QueryDocumentSnapshot> documents = querySnapshotApiFuture.get().getDocuments();
+                    for (QueryDocumentSnapshot document : documents) {
+                        results.put(document.getReference(), document.toObject(Prize.class));
+                    }
+                    int allPrizeCount = 0;
+                    for (Prize pr : results.values()) {
+                        allPrizeCount += pr.getCount();
+                    }
+
+                    if (allPrizeCount <= 0) {
+                        throw new Exception("Sorry! No prizes.");
+                    }
+
+                    int nextInt = new Random().nextInt(allPrizeCount);
+                    int sumCount = 0;
+                    DocumentReference resultPrizeId = null;
+                    for (Map.Entry<DocumentReference, Prize> pr : results.entrySet()) {
+                        int prizeCount = pr.getValue().getCount().intValue();
+                        sumCount += prizeCount;
+                        if (prizeCount > 0 && sumCount > nextInt) {
+                            resultPrizeId = pr.getKey();
+                            break;
+                        }
+                    }
+
+                    if (resultPrizeId != null) {
+                        Prize resultPrize = results.get(resultPrizeId);
+                        Double randomReward = resultPrize.getAmount();
+                        user.setReward(randomReward);
+                        resultPrize.setCount(resultPrize.getCount() - 1);
+
+                        transaction.set(userDocRef, user);
+                        transaction.set(resultPrizeId, resultPrize);
+                        return resultPrizeId.getId();
+                    } else {
+                        throw new Exception("Error in random selection: " + allPrizeCount + "; " + nextInt);
+                    }
+                } else {
+                    throw new Exception("User do not complete all rules for reward");
                 }
-                break;
+            });
+            return futureTransaction.get();
+        } catch (Exception e) {
+            LOG.error("randomPrize", e);
+            return null;
+        }
+    }
+
+    public Map<String, Prize> getPrizes() {
+        try {
+            Map<String, Prize> results = new HashMap<>();
+            ApiFuture<QuerySnapshot> future = db.collection(prizeCollection).get();
+            List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+            for (QueryDocumentSnapshot document : documents) {
+                results.put(document.getId(), document.toObject(Prize.class));
             }
+            return results;
+        } catch (Exception e) {
+            LOG.error("Firestore get", e);
+            return new HashMap<>();
         }
-        if (!foundUser) {
-            write(collection, userName, score);
-            results = getResults(collection);
-        }
-        return results;
     }
 }

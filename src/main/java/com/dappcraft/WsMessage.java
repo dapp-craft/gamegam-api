@@ -1,5 +1,7 @@
 package com.dappcraft;
 
+import com.dappcraft.db.ScoreResult;
+
 import java.util.List;
 import java.util.Map;
 
