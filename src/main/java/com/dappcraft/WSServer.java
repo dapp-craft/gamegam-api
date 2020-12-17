@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.dappcraft.broxus.*;
 import com.dappcraft.db.Prize;
+import com.dappcraft.db.Result;
 import com.dappcraft.db.UserInfo;
 import com.google.gson.Gson;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -63,7 +64,7 @@ public class WSServer {
         //            setupPrizes();
 
         for (Prize prize : store.getPrizes().values()) {
-            LOG.infov("prize {0} {1}", prize.getInitCount(), prize.getAmount());
+            LOG.infov("prize {0}TON - {1}/{2} ", prize.getAmount(), prize.getCount(), prize.getInitCount());
         }
         broxus();
     }
@@ -111,7 +112,7 @@ public class WSServer {
         }
     }
 
-    public boolean transfer(String telegramUserId, Double amount) {
+    public String transfer(String telegramUserId, Double amount) {
         RequestTransfer req = new RequestTransfer();
         req.id = UUID.randomUUID().toString();
         req.currency = "TON";
@@ -129,10 +130,10 @@ public class WSServer {
             String sign = getSignByUrlAndBody("/v1/transfer", body, timestamp);
             ResponseTransfer transfer = broxusService.transfer(broxusApiKey, String.valueOf(timestamp), sign, body);
             LOG.infov("transfer to {0} amount: {1} id: {2}", req.toUserAddress, req.value, transfer.id);
-            return true;
+            return transfer.id;
         } catch (Exception e) {
             LOG.errorv( e, "getSignByUrlAndBody: {0}", gson.toJson(req));
-            return false;
+            return null;
         }
     }
 
@@ -184,14 +185,18 @@ public class WSServer {
         }
     }
 
-    public boolean onUserConnect(String userId) {
-        UserInfo userInfo = new UserInfo();
+    public UserInfo onUserConnect(String userId) {
+        UserInfo userInfo;
+        userInfo = store.getUser(userId);
+        if (userInfo == null) {
+            userInfo = new UserInfo();
 // TODO        userInfo.setUserName("BOT");
-        userInfo.setConnectDate(new Date());
-        userInfo.setJoinGroup(false);
-        userInfo.setRewardClaimed(false);
-
-        return store.updateUser(userId, userInfo) != null;
+            userInfo.setConnectDate(new Date());
+            userInfo.setJoinGroup(false);
+            userInfo.setRewardClaimed(false);
+            store.updateUser(userId, userInfo);
+        }
+        return userInfo;
     }
 
     public boolean onCompleteStep(String userId, String step) {
@@ -205,40 +210,63 @@ public class WSServer {
         LOG.infov("telegramApiService check {0} {1}", check.getResult(), check.user_id);
         if (check.getResult()) {
             UserInfo userInfo = store.getUser(userId);
-            userInfo.setTelegramName(telegramName);
-            userInfo.setTelegramId(check.user_id);
-            userInfo.setJoinGroup(true);
-            store.updateUser(userId, userInfo);
+            if(userInfo.getReward() == null && !userInfo.getRewardClaimed()) {
+                userInfo.setTelegramName(telegramName);
+                userInfo.setTelegramId(check.user_id);
+                userInfo.setJoinGroup(true);
+                store.updateUser(userId, userInfo);
+            } else {
+                LOG.errorv("Try to change telegram account {0}>{1} after get reward {2}", userInfo.getTelegramId(), telegramName, userInfo.getReward());
+            }
         }
         return check.getResult();
     }
 
-    public String onGetRandomReward(String userId) {
-        if (store.findDuplicatesTelegram(userId)) {
-            return null;
+    public void onGetRandomReward(String userId, String debugCode, WsResult result) {
+        if ((debugCode != null && debugCode.equals("DC_DEBUG")) || !store.findDuplicatesTelegram(userId)) {
+            Result reward = store.randomPrize(userId);
+            if (reward != null) {
+                if (reward.prize != null) {
+                    result.reward = reward.user.getReward();
+                    result.success = true;
+                    result.claimApproved = reward.user.getClaimApproved();
+                    result.error = reward.message;
+                    LOG.infov("randomPrize for {0} - {1}", userId, result.reward);
+                } else {
+                    result.success = false;
+                    result.error = reward.message;
+                }
+            } else {
+                result.success = false;
+                result.error = "Get reward fail";
+            }
+        } else {
+            result.success = false;
+            result.error = "Reward already claimed for this telegram user!";
         }
-        String reward = store.randomPrize(userId);
-        LOG.infov("randomPrize for {0} - {1}", userId, reward);
-        return reward;
     }
 
     public boolean onClaimReward(String userId) {
-        UserInfo userInfo1 = store.getUser(userId);
+        UserInfo userInfo = store.getUser(userId);
 
-        if(!userInfo1.getRewardClaimed() && userInfo1.getReward() != null) {
+        if(!userInfo.getRewardClaimed() && userInfo.getReward() != null && userInfo.getClaimApproved()) {
             Double balance = checkTonBalance();
-            if (balance < userInfo1.getReward()) {
-                LOG.errorv("No balance {0} for claim reward {1}", balance, userInfo1.getReward());
+            if (balance < userInfo.getReward()) {
+                LOG.errorv("No balance {0} for claim reward {1}", balance, userInfo.getReward());
                 return false;
             }
 
-            boolean transfer = transfer(userInfo1.getTelegramId(), userInfo1.getReward());
-            if (transfer) {
-                userInfo1.setRewardClaimed(true);
-                userInfo1.setClaimDate(new Date());
-                return store.updateUser(userId, userInfo1) != null;
+            String trxId = transfer(userInfo.getTelegramId(), userInfo.getReward());
+            if (trxId != null) {
+                userInfo.setRewardClaimed(true);
+                userInfo.setClaimDate(new Date());
+                userInfo.setClaimTransactionId(trxId);
+                boolean res = store.updateUser(userId, userInfo) != null;
+                LOG.infov("ClaimReward for {0} - {1}; trx={2}", userId, res, trxId);
+                return res;
             }
         }
+        LOG.warnv("ClaimReward fail for {0} claimed: {1}; reward: {2}; approved: {3}", userId, userInfo.getRewardClaimed(), userInfo.getReward(), userInfo.getClaimApproved());
         return false;
     }
 
@@ -316,7 +344,7 @@ public class WSServer {
                                 });
                             }
                         });
-                        LOG.infov("Broadcast timestamp {0} update {1}, active sessions {2}", l, sceneId, sessions.size());
+//                        LOG.infov("Broadcast timestamp {0} update {1}, active sessions {2}", l, sceneId, sessions.size());
                     }
                 }, updatePeriod, updatePeriod);
             } else {
@@ -390,7 +418,9 @@ public class WSServer {
             result.cmd = cmdMessage.cmd;
             switch (cmdMessage.cmd) {
                 case "connect":
-                    result.success = onUserConnect(cmdMessage.userId);
+                    UserInfo userInfo = onUserConnect(cmdMessage.userId);
+                    result.success = userInfo != null;
+                    result.userInfo = userInfo;
                     break;
                 case "completeStep":
                     result.success = onCompleteStep(cmdMessage.userId, cmdMessage.step);
@@ -399,23 +429,11 @@ public class WSServer {
                     result.success = onCheckGroupTask(cmdMessage.userId, cmdMessage.telegramName);
                     break;
                 case "getReward":
-                    String reward = onGetRandomReward(cmdMessage.userId);
-                    if (reward != null) {
-                        try {
-                            result.reward = Double.parseDouble(reward);
-                            result.success = true;
-                            result.claimApprove = result.reward < 100;
-                        } catch (NumberFormatException e) {
-                            result.success = false;
-                            result.error = "Reward not correct";
-                        }
-                    } else {
-                        result.success = false;
-                        result.error = "Get reward fail";
-                    }
+                    onGetRandomReward(cmdMessage.userId, cmdMessage.debugCode, result);
                     break;
                 case "claimReward":
                     result.success = onClaimReward(cmdMessage.userId);
+                    if (!result.success) result.error = "Try to claim later";
                     break;
                 default:
                     result.success = false;

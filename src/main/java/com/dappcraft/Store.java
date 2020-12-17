@@ -1,6 +1,7 @@
 package com.dappcraft;
 
 import com.dappcraft.db.Prize;
+import com.dappcraft.db.Result;
 import com.dappcraft.db.UserInfo;
 import com.google.api.core.ApiFuture;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -23,6 +24,7 @@ public class Store {
 
     String prizeCollection = "ton-airdrop-prizes";
     String userCollection = "ton-airdrop-users";
+    Double needApproveAmount = 100.;
 
     Store() {
         try {
@@ -92,13 +94,20 @@ public class Store {
         }
     }
 
-    public String randomPrize(String userId) {
+    public Result randomPrize(String userId) {
         try {
             final CollectionReference prizeCollectionRef = db.collection(prizeCollection);
             final DocumentReference userDocRef = db.collection(userCollection).document(userId);
-            ApiFuture<String> futureTransaction = db.runTransaction(transaction -> {
+            ApiFuture<Result> futureTransaction = db.runTransaction(transaction -> {
+                Result transResult = new Result();
                 DocumentSnapshot userDocSnapshot = transaction.get(userDocRef).get();
                 UserInfo user = userDocSnapshot.toObject(UserInfo.class);
+
+                if (user == null) {
+                    LOG.errorv("randomPrize: User not found {0}", userId);
+                    transResult.message = "User not found";
+                    return transResult;
+                }
 
                 if (user.getJoinGroup() && !user.getRewardClaimed() && user.getReward() == null && user.getTelegramId() != null) {
                     ApiFuture<QuerySnapshot> querySnapshotApiFuture = transaction.get(prizeCollectionRef.limit(100));
@@ -114,14 +123,16 @@ public class Store {
                     }
 
                     if (allPrizeCount <= 0) {
-                        throw new Exception("Sorry! No prizes.");
+                        LOG.errorv("randomPrize: No prizes {0}", userId);
+                        transResult.message = "Sorry! No prizes.";
+                        return transResult;
                     }
 
                     int nextInt = new Random().nextInt(allPrizeCount);
                     int sumCount = 0;
                     DocumentReference resultPrizeId = null;
                     for (Map.Entry<DocumentReference, Prize> pr : results.entrySet()) {
-                        int prizeCount = pr.getValue().getCount().intValue();
+                        int prizeCount = pr.getValue().getCount();
                         sumCount += prizeCount;
                         if (prizeCount > 0 && sumCount > nextInt) {
                             resultPrizeId = pr.getKey();
@@ -133,27 +144,39 @@ public class Store {
                         Prize resultPrize = results.get(resultPrizeId);
                         Double randomReward = resultPrize.getAmount();
                         user.setReward(randomReward);
+                        user.setClaimApproved(randomReward < needApproveAmount);
+                        user.setQuestStep("get_reward");
                         resultPrize.setCount(resultPrize.getCount() - 1);
 
                         transaction.set(userDocRef, user);
                         transaction.set(resultPrizeId, resultPrize);
-                        return resultPrizeId.getId();
+                        transResult.prize = resultPrize;
+                        transResult.user = user;
+                        return transResult;//resultPrizeId.getId();
                     } else {
-                        throw new Exception("Error in random selection: " + allPrizeCount + "; " + nextInt);
+                        transResult.message = "Error in random selection";
+                        LOG.errorv("randomPrize: Error in random selection prize {0}; {1} - {2}", userId, allPrizeCount, nextInt);
                     }
                 } else {
-                    throw new Exception("User do not complete all rules for reward");
+                    LOG.errorv("randomPrize: User do not complete all rules for reward {0}", userId);
+                    transResult.message = "User do not complete all rules for reward";
                 }
+                return transResult;
             });
             return futureTransaction.get();
         } catch (Exception e) {
             LOG.error("randomPrize", e);
-            return null;
+            Result transResult = new Result();
+            transResult.message = "Server Error";
+            return transResult;
         }
     }
 
     public boolean findDuplicatesTelegram(String userId) {
         try {
+            //for debug
+//            if (userId.equals("124349749") || userId.equals("456307291")) return false;
+
             UserInfo user = getUser(userId);
             String telegramId = user.getTelegramId();
             if (telegramId == null) return true;

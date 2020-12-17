@@ -5,4 +5,5 @@ public class WsCmdMessage {
     public String cmd;
     public String step;
     public String telegramName;
+    public String debugCode;
 }

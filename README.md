@@ -32,6 +32,6 @@ If you want to learn more about building native executables, please consult http
 
 ## Deploy
 
-`mvnw package -Dquarkus.container-image.build=true -DskipTests=true`
+`mvnw package -Dquarkus.container-image.build=true -Dquarkus.container-image.name=ton-api -DskipTests=true`
 
-`docker stop game && docker run --label-file=labels --network=backend_elk --rm -p 8080 --name game alexey/gamegam-api:1.0.0-SNAPSHOT`
+`docker rm -f ton-api && docker run -d --label-file=labels --restart=always --network=backend_elk -p 8080 --name ton-api alexey/ton-api:1.0.0-SNAPSHOT`

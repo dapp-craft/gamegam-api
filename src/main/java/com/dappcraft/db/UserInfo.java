@@ -7,7 +7,9 @@ public class UserInfo {
     private String telegramName;
     private String telegramId;
     private String questStep;
+    private String claimTransactionId;
     private Double reward;
+    private Boolean claimApproved;
     private Boolean rewardClaimed;
     private Boolean joinGroup;
     private Date connectDate;
@@ -83,5 +85,21 @@ public class UserInfo {
 
     public void setClaimDate(Date claimDate) {
         this.claimDate = claimDate;
+    }
+
+    public String getClaimTransactionId() {
+        return claimTransactionId;
+    }
+
+    public void setClaimTransactionId(String claimTransactionId) {
+        this.claimTransactionId = claimTransactionId;
+    }
+
+    public boolean getClaimApproved() {
+        return claimApproved != null? claimApproved :false;
+    }
+
+    public void setClaimApproved(Boolean claimApproved) {
+        this.claimApproved = claimApproved;
     }
 }
