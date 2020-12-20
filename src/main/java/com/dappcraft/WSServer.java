@@ -26,6 +26,7 @@ import javax.websocket.OnOpen;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import javax.websocket.Session;
+import javax.ws.rs.WebApplicationException;
 import java.util.Timer;
 
 
@@ -185,12 +186,12 @@ public class WSServer {
         }
     }
 
-    public UserInfo onUserConnect(String userId) {
+    public UserInfo onUserConnect(String userId, String userName) {
         UserInfo userInfo;
         userInfo = store.getUser(userId);
         if (userInfo == null) {
             userInfo = new UserInfo();
-// TODO        userInfo.setUserName("BOT");
+            userInfo.setUserName(userName);
             userInfo.setConnectDate(new Date());
             userInfo.setJoinGroup(false);
             userInfo.setRewardClaimed(false);
@@ -206,24 +207,29 @@ public class WSServer {
     }
 
     public boolean onCheckGroupTask(String userId, String telegramName) {
-        CheckResult check = telegramApiService.check("TONCRYSTAL", telegramName);
-        LOG.infov("telegramApiService check {0} {1}", check.getResult(), check.user_id);
-        if (check.getResult()) {
-            UserInfo userInfo = store.getUser(userId);
-            if(userInfo.getReward() == null && !userInfo.getRewardClaimed()) {
-                userInfo.setTelegramName(telegramName);
-                userInfo.setTelegramId(check.user_id);
-                userInfo.setJoinGroup(true);
-                store.updateUser(userId, userInfo);
-            } else {
-                LOG.errorv("Try to change telegram account {0}>{1} after get reward {2}", userInfo.getTelegramId(), telegramName, userInfo.getReward());
+        try {
+            CheckResult check = telegramApiService.check("TONCRYSTAL", telegramName);
+            LOG.infov("telegramApiService check {0} {1}", check.getResult(), check.user_id);
+            if (check.getResult()) {
+                UserInfo userInfo = store.getUser(userId);
+                if(userInfo.getReward() == null && !userInfo.getRewardClaimed()) {
+                    userInfo.setTelegramName(telegramName);
+                    userInfo.setTelegramId(check.user_id);
+                    userInfo.setJoinGroup(true);
+                    store.updateUser(userId, userInfo);
+                } else {
+                    LOG.errorv("Try to change telegram account {0}>{1} after get reward {2}", userInfo.getTelegramId(), telegramName, userInfo.getReward());
+                }
             }
+            return check.getResult();
+        } catch (WebApplicationException e) {
+            LOG.errorv(e, "CheckGroup fail {0} - (1}", userId, telegramName);
+            return false;
         }
-        return check.getResult();
     }
 
     public void onGetRandomReward(String userId, String debugCode, WsResult result) {
-        if ((debugCode != null && debugCode.equals("DC_DEBUG")) || !store.findDuplicatesTelegram(userId)) {
+        if (!store.findDuplicatesTelegram(userId)) {
             Result reward = store.randomPrize(userId);
             if (reward != null) {
                 if (reward.prize != null) {
@@ -246,13 +252,14 @@ public class WSServer {
         }
     }
 
-    public boolean onClaimReward(String userId) {
+    public boolean onClaimReward(String userId, WsResult result) {
         UserInfo userInfo = store.getUser(userId);
 
         if(!userInfo.getRewardClaimed() && userInfo.getReward() != null && userInfo.getClaimApproved()) {
             Double balance = checkTonBalance();
             if (balance < userInfo.getReward()) {
                 LOG.errorv("No balance {0} for claim reward {1}", balance, userInfo.getReward());
+                result.error = "Try to claim later";
                 return false;
             }
 
@@ -264,7 +271,11 @@ public class WSServer {
                 boolean res = store.updateUser(userId, userInfo) != null;
                 LOG.infov("ClaimReward for {0} - {1}; trx={2}", userId, res, trxId);
                 return res;
+            } else {
+                result.error = "Broxus api fail; Try to claim later";
             }
+        } else {
+            result.error = "Already claimed, go to @broxusbot";
         }
         LOG.warnv("ClaimReward fail for {0} claimed: {1}; reward: {2}; approved: {3}", userId, userInfo.getRewardClaimed(), userInfo.getReward(), userInfo.getClaimApproved());
         return false;
@@ -416,29 +427,34 @@ public class WSServer {
             LOG.infov("Receive cmd {0}-{1}:{2}", cmdMessage.cmd, message);
             WsResult result = new WsResult();
             result.cmd = cmdMessage.cmd;
-            switch (cmdMessage.cmd) {
-                case "connect":
-                    UserInfo userInfo = onUserConnect(cmdMessage.userId);
-                    result.success = userInfo != null;
-                    result.userInfo = userInfo;
-                    break;
-                case "completeStep":
-                    result.success = onCompleteStep(cmdMessage.userId, cmdMessage.step);
-                    break;
-                case "checkGroup":
-                    result.success = onCheckGroupTask(cmdMessage.userId, cmdMessage.telegramName);
-                    break;
-                case "getReward":
-                    onGetRandomReward(cmdMessage.userId, cmdMessage.debugCode, result);
-                    break;
-                case "claimReward":
-                    result.success = onClaimReward(cmdMessage.userId);
-                    if (!result.success) result.error = "Try to claim later";
-                    break;
-                default:
-                    result.success = false;
-                    result.error = "Unknown command";
-                    LOG.errorv("Unknown command {0} {1}", cmdMessage.cmd, message);
+            if (cmdMessage.userId == null || cmdMessage.userId.isEmpty()) {
+                result.success = false;
+                result.error = "Empty userId";
+                LOG.errorv("Empty userId: {0}", cmdMessage.cmd);
+            } else {
+                switch (cmdMessage.cmd) {
+                    case "connect":
+                        UserInfo userInfo = onUserConnect(cmdMessage.userId, cmdMessage.userName);
+                        result.success = userInfo != null;
+                        result.userInfo = userInfo;
+                        break;
+                    case "completeStep":
+                        result.success = onCompleteStep(cmdMessage.userId, cmdMessage.step);
+                        break;
+                    case "checkGroup":
+                        result.success = onCheckGroupTask(cmdMessage.userId, cmdMessage.telegramName);
+                        break;
+                    case "getReward":
+                        onGetRandomReward(cmdMessage.userId, cmdMessage.debugCode, result);
+                        break;
+                    case "claimReward":
+                        result.success = onClaimReward(cmdMessage.userId, result);
+                        break;
+                    default:
+                        result.success = false;
+                        result.error = "Unknown command";
+                        LOG.errorv("Unknown command {0} {1}", cmdMessage.cmd, message);
+                }
             }
             String resultMessage = gson.toJson(result);
             LOG.infov("Result cmd {0}-{1}:{2}", result.cmd, result.success, resultMessage);
