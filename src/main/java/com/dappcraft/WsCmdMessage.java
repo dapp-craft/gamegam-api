@@ -7,4 +7,6 @@ public class WsCmdMessage {
     public String step;
     public String telegramName;
     public String debugCode;
+    public String signature;
+    public String messageHex;
 }

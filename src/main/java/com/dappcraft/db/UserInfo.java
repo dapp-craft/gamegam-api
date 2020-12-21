@@ -11,6 +11,7 @@ public class UserInfo {
     private Double reward;
     private Boolean claimApproved;
     private Boolean rewardClaimed;
+    private Boolean hasClaimedName;
     private Boolean joinGroup;
     private Date connectDate;
     private Date claimDate;
@@ -101,5 +102,13 @@ public class UserInfo {
 
     public void setClaimApproved(Boolean claimApproved) {
         this.claimApproved = claimApproved;
+    }
+
+    public boolean getHasClaimedName() {
+        return hasClaimedName!= null?hasClaimedName:false;
+    }
+
+    public void setHasClaimedName(Boolean hasClaimedName) {
+        this.hasClaimedName = hasClaimedName;
     }
 }

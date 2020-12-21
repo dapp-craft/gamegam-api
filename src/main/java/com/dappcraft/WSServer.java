@@ -49,6 +49,10 @@ public class WSServer {
     @RestClient
     BroxusService broxusService;
 
+    @Inject
+    @RestClient
+    DclApiService dclApiService;
+
     String broxusApiKey = "imEUINZFjEaRIbNiDPI4Yk1oj7Oo-u0TaX3WIURXEEok-z99ibq_yG-XMsY8Rm1p";
     String broxusSecretKey = "7g-OoAojQ-24TIDKxRkhlVlRfmzHhjSBn6kGWRLNlxJd6VdIwNKHCTvl0hMXKEBG";
     String broxusWorkspaceId = "f6e28519-e6b5-4fc1-a6a7-e0dd7dd02bd7";
@@ -208,7 +212,11 @@ public class WSServer {
 
     public boolean onCheckGroupTask(String userId, String telegramName) {
         try {
+//            CheckResult check = new CheckResult();
+//            check.user_id = "0";
+//            check.setResult(true);
             CheckResult check = telegramApiService.check("TONCRYSTAL", telegramName);
+
             LOG.infov("telegramApiService check {0} {1}", check.getResult(), check.user_id);
             if (check.getResult()) {
                 UserInfo userInfo = store.getUser(userId);
@@ -450,6 +458,9 @@ public class WSServer {
                     case "claimReward":
                         result.success = onClaimReward(cmdMessage.userId, result);
                         break;
+                    case "signMessage":
+                        result.success = onSignMessage(cmdMessage.userId, cmdMessage.signature, cmdMessage.messageHex, result);
+                        break;
                     default:
                         result.success = false;
                         result.error = "Unknown command";
@@ -464,6 +475,40 @@ public class WSServer {
                 }
             });
         }
+    }
+
+    private boolean onSignMessage(String userId, String signature, String messageHex, WsResult result) {
+        UserInfo user = store.getUser(userId);
+        if (user != null) {
+            for (DclUserInfo userInfo : dclApiService.getUserInfo(userId.toLowerCase())) {
+                if (userInfo.metadata != null && userInfo.metadata.avatars != null && !userInfo.metadata.avatars.isEmpty()) {
+                    DclAvatar dclAvatar = userInfo.metadata.avatars.get(0);
+                    LOG.infov("userInfo {0}", dclAvatar.name);
+                    user.setUserName(dclAvatar.name);
+                    user.setHasClaimedName(dclAvatar.hasClaimedName);
+//                for (String wearable : dclAvatar.avatar.wearables) {
+//                    // dcl://halloween_2020/hwn_2020_dracula_mouth
+//                    // dcl://dappcraft_moonminer/moonminer_pants_lower_body
+//                    LOG.infov("wearable {0}", wearable);
+//                }
+                }
+            }
+
+            if (user.getHasClaimedName()) {
+                //TODO signature verify
+                if (signature != null  && messageHex != null && messageHex.length() >= 16) {
+                    if (signature.length() == 262 || signature.length() == 132) {
+                        store.updateUser(userId, user);
+                        return true;
+                    }
+                }
+                result.error = "Signature is not valid";
+            } else {
+                result.error = "Do not have claimed DCL Name";
+            }
+        }
+        result.error = "User not found";
+        return false;
     }
 
     private WsMessage parse(String json) {

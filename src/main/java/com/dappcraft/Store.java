@@ -25,6 +25,7 @@ public class Store {
     String prizeCollection = "ton-airdrop-prizes";
     String userCollection = "ton-airdrop-users";
     Double needApproveAmount = 100.;
+    private boolean getRewardDisabled = true;
 
     Store() {
         try {
@@ -109,7 +110,12 @@ public class Store {
                     return transResult;
                 }
 
-                if (user.getJoinGroup() && !user.getRewardClaimed() && user.getReward() == null && user.getTelegramId() != null) {
+                if (user.getJoinGroup() && !user.getRewardClaimed() && user.getReward() == null && user.getTelegramId() != null && user.getHasClaimedName()) {
+                    if (this.getRewardDisabled) {
+                        LOG.errorv("randomPrize: getRewardDisabled {0}", userId);
+                        transResult.message = "Getting reward disabled, wait when event is starting";
+                        return transResult;
+                    }
                     ApiFuture<QuerySnapshot> querySnapshotApiFuture = transaction.get(prizeCollectionRef.limit(100));
 
                     Map<DocumentReference, Prize> results = new HashMap<>();
