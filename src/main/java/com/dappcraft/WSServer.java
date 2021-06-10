@@ -66,7 +66,7 @@ public class WSServer {
     @PostConstruct
     public void init() {
         LOG.infov("init");
-        //            setupPrizes();
+//        setupPrizes();
 
         for (Prize prize : store.getPrizes().values()) {
             LOG.infov("prize {0}TON - {1}/{2} ", prize.getAmount(), prize.getCount(), prize.getInitCount());
@@ -291,20 +291,19 @@ public class WSServer {
 
     private void setupPrizes() {
         Map<Integer, Integer> p = new HashMap<>();
-        p.put(1000, 1);
-        p.put(100, 30);
-        p.put(50, 100);
-        p.put(25, 200);
-        p.put(10, 500);
-        p.put(5, 1200);
+        p.put(10,	335);
+        p.put(20,	144);
+        p.put(50,	57);
+        p.put(100,	24);
+        p.put(200,	7);
 
         Prize prize = new Prize();
 
         for (Map.Entry<Integer, Integer> entry : p.entrySet()) {
             int amount = entry.getKey();
             int count = entry.getValue();
-//            prize.setAmount((double) amount);
-            prize.setAmount((double) amount * 0.001);
+            prize.setAmount((double) amount);
+//            prize.setAmount((double) amount * 0.001);
             prize.setInitCount(count);
             prize.setCount(count);
             store.updatePrize(String.valueOf(amount), prize);

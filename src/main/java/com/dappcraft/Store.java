@@ -22,9 +22,9 @@ public class Store {
     Firestore db;
     private static final Logger LOG = Logger.getLogger(Store.class);
 
-    String prizeCollection = "ton-airdrop-prizes";
-    String userCollection = "ton-airdrop-users";
-    Double needApproveAmount = 100.;
+    String prizeCollection = "ton-airdrop-prizes_s2";
+    String userCollection = "ton-airdrop-users_s2";
+    Double needApproveAmount = 1000.;
     private boolean getRewardDisabled = false;
 
     Store() {
@@ -110,7 +110,13 @@ public class Store {
                     return transResult;
                 }
 
-                if (user.getJoinGroup() && !user.getRewardClaimed() && user.getReward() == null && user.getTelegramId() != null && user.getHasClaimedName()) {
+                if (
+                        user.getJoinGroup()
+                     && !user.getRewardClaimed()
+                     && user.getReward() == null
+                     && user.getTelegramId() != null
+//                     && user.getHasClaimedName()
+                ) {
                     if (this.getRewardDisabled) {
                         LOG.errorv("randomPrize: getRewardDisabled {0}", userId);
                         transResult.message = "Getting reward disabled, wait when event is starting";
