@@ -25,7 +25,7 @@ public class Store {
     String prizeCollection = "ton-airdrop-prizes";
     String userCollection = "ton-airdrop-users";
     Double needApproveAmount = 100.;
-    private boolean getRewardDisabled = true;
+    private boolean getRewardDisabled = false;
 
     Store() {
         try {

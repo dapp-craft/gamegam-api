@@ -485,7 +485,9 @@ public class WSServer {
                     DclAvatar dclAvatar = userInfo.metadata.avatars.get(0);
                     LOG.infov("userInfo {0}", dclAvatar.name);
                     user.setUserName(dclAvatar.name);
-                    user.setHasClaimedName(dclAvatar.hasClaimedName);
+                    if (dclAvatar.hasClaimedName && !dclAvatar.name.contains("TheUnity")) { // && !dclAvatar.name.contains("#") && !dclAvatar.name.contains("Guest-")
+                        user.setHasClaimedName(true);
+                    }
 //                for (String wearable : dclAvatar.avatar.wearables) {
 //                    // dcl://halloween_2020/hwn_2020_dracula_mouth
 //                    // dcl://dappcraft_moonminer/moonminer_pants_lower_body
