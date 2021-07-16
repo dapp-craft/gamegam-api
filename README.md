@@ -32,6 +32,6 @@ If you want to learn more about building native executables, please consult http
 
 ## Deploy
 
-`mvnw package -Dquarkus.container-image.build=true -Dquarkus.container-image.name=ton-api-s2 -DskipTests=true`
+`mvnw package -Dquarkus.container-image.build=true -Dquarkus.container-image.name=scene-api -Dquarkus.container-image.group=dappcraft -DskipTests=true`
 
-`docker rm -f ton-api && docker run -d --label-file=labels --restart=always --network=backend_elk -p 8080 --name ton-api alex/ton-api-s2:1.0.0-SNAPSHOT`
+`docker rm -f scene-api && docker run -d --label-file=labels --restart=always --network=backend_elk -p 8080 --name scene-api dappcraft/scene-api:1.0.0-SNAPSHOT`

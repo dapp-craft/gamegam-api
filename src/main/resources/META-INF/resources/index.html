@@ -4,40 +4,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="initial-scale=1, maximum-scale=1">
-    <title>Title</title>
+    <title>DappCraft Scene Management Panel</title>
 </head>
 
-
-<body>
-    <div class="field">
-        <div class="ball"></div>
-    </div>
+<body>        <br />
+<br />
+<br />
     <div class="pin">
         <br />
         <br />
         <br />
         <br />
-        <!--         <br />-->
-        <!--        <h1 class="text">ENTER PIN</h1>-->
-        <input class="btn_input" type="number" id="user" name="user" placeholder="PIN" onchange="showConnectBtn()" />
-        <button id="connect" class="btn connect" onclick="connect()">Step 1: Connect</button>
-        <button id="btnStart" class="btn connect" onclick="testDeviceOrientation()">Step 2: Start</button>
-        <!--        <br />-->
+        <input class="btn_input" type="text" id="user" name="user" placeholder="username" hidden onchange="showConnectBtn()" />
+        <button id="connect" class="btn connect" onclick="connect()">Connect</button>
         <br />
         <br />
-        <!--        <button class="btn" onclick="reset(0)">Calibrate</button>-->
-        <button class="btn" onclick="sendCommand('on')">Sword Switch</button>
-        <button class="btn" onclick="sendCommand('changeColor')">Sword Color</button>
-        <button class="btn" onclick="sendCommand('changeHands')">Change Hands</button>
+        <button class="btn" onclick="sendCommand('broadcast', 'startEvent')">start event</button>
+        <button class="btn" onclick="sendCommand('getStats')">getStats</button>
         <br />
         <button class="btn"
-            onclick="alert('How to play:\r\n1. Enter PIN \r\n2. Press Connect \r\n3. Press Start(for iOS 13+) \r\n4. Shake your phone \r\n5. Keep your finger on finger area \r\n \r\nOptional: \r\nSword switch-reactivate sword \r\nSword color-change sword color \r\nChange hands-hands for pistol and sword')">Help</button>
+            onclick="alert('TODO')">Help</button>
         <br />
-        <button class="btn" style="height: 120px;
-        background: rgba(256, 256, 256, 0.18);">Put your finger here</button>
+        param:
+        <br />
+        <select class="btn_input" id="paramName">
+            <option>freq</option>
+            <option>startTime</option>
+        </select>
+        <input class="btn_input" type="text" id="paramValue" />
+        <br />
+        <br />
+        <button class="btn" onclick="sendCommand('updateParams')">updateParams</button>
+        <br/>
+        scene params:
+        <br/>
+        <textarea id="sceneParams">{}</textarea>
+        <button class="btn" onclick="sendCommand('updateSceneParams')">updateSceneParams</button>
     </div>
     <div class="btn_block">
-
     </div>
     <style>
         * {
@@ -155,156 +159,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/js/patternfly.min.js"></script>
-    <script>
-        function connect() {
-            location.search = "?user=" + $('#user').val();
-        }
-
-        function showConnectBtn() {
-            $('#connect').show()
-        }
-        var defaultAngle = {
-            a: 0,
-            b: 0,
-            g: 0
-        }
-        var currAngle = {
-            a: 0,
-            b: 0,
-            g: 0
-        }
-        function reset(mode) {
-            console.log('reset', mode)
-            if (mode === 0) {
-                defaultAngle.a = currAngle.a
-                defaultAngle.b = currAngle.b
-                defaultAngle.g = currAngle.g
-            }
-        }
-
-        function testDeviceOrientation() {
-            if (typeof DeviceOrientationEvent !== 'function') {
-                return setResult('DeviceOrientationEvent not detected')
-            }
-            if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
-                return setResult('DeviceOrientationEvent.requestPermission not detected')
-            }
-            DeviceOrientationEvent.requestPermission().then(function (result) {
-                $('#btnStart').hide()
-                return setResult(result);
-            });
-        }
-
-        function setResult(result) {
-            console.log(result)
-        }
-
-        function toQuaternionFromEuler(alpha, beta, gamma) {
-            const degToRad = Math.PI / 180
-
-            const x = (beta || 0) * degToRad;
-            const y = (gamma || 0) * degToRad;
-            const z = (alpha || 0) * degToRad;
-
-            const cZ = Math.cos(z * 0.5);
-            const sZ = Math.sin(z * 0.5);
-            const cY = Math.cos(y * 0.5);
-            const sY = Math.sin(y * 0.5);
-            const cX = Math.cos(x * 0.5);
-            const sX = Math.sin(x * 0.5);
-
-            const qx = sX * cY * cZ - cX * sY * sZ;
-            const qy = cX * sY * cZ + sX * cY * sZ;
-            const qz = cX * cY * sZ + sX * sY * cZ;
-            const qw = cX * cY * cZ - sX * sY * sZ;
-
-            return [qx, qy, qz, qw];
-        }
-
-        var ball = document.querySelector('.ball');
-        var globalX;
-        var globalY;
-        var globalZ;
-
-        function handleOrientation(event) {
-            var z = event.alpha
-            var x = event.beta;  // In degree in the range [-180,180]
-            var y = event.gamma; // In degree in the range [-90,90]
-            globalX = x
-            globalY = y
-            globalZ = z
-            ball.style.top = (x) + "px";
-            ball.style.left = (z) + "px";
-        }
-
-        function connectTo(user) {
-            const ws = new WebSocket(location.protocol.replace('http', 'ws') + location.host + '/controller/' + user);
-            return ws;
-        }
-
-        var prevCoord = { x: 0, y: 0, z: 0 }
-        const diffLevel = 1
-
-        var wSocket = null
-
-        function sendCommand(cmd) {
-            if (wSocket != null) {
-                const c = JSON.stringify({
-                    type: 'cmd',
-                    cmd: cmd
-                }
-                )
-                console.log(c)
-                wSocket.send(c);
-            } else {
-                console.log('socker closed')
-            }
-        }
-
-        $(document).ready(function () {
-            const params = new URLSearchParams(location.search)
-            var user = params.get("user")
-
-            console.log($('#user').value, user)
-            if (user != null) {
-                $('#user').val(user)
-                wSocket = connectTo(user);
-                wSocket.onopen = function (event) {
-                    $('#connect').hide()
-                    window.addEventListener('deviceorientation', function (orientationEvent) {
-                        $('#btnStart').hide()
-                        console.log(orientationEvent)
-                        currAngle = {
-                            a: orientationEvent.alpha,
-                            b: orientationEvent.beta,
-                            g: orientationEvent.gamma
-                        }
-                        const coord = {
-                            x: orientationEvent.beta,  // In degree in the range [-180,180],
-                            y: orientationEvent.gamma, // In degree in the range [-90,90],
-                            z: orientationEvent.alpha
-                        }
-                        const dx = prevCoord.x - coord.x;
-                        const dy = prevCoord.y - coord.y;
-                        const dz = prevCoord.z - coord.z;
-                        const diff = dx * dx + dy * dy + dz * dz
-
-                        if (diff > diffLevel) {
-                            const c = JSON.stringify({
-                                type: 'rotate',
-                                quat: toQuaternionFromEuler(orientationEvent.alpha, orientationEvent.beta, orientationEvent.gamma)
-                            })
-                            wSocket.send(c);
-                            prevCoord = coord
-                        }
-                        handleOrientation(orientationEvent)
-                    });
-                };
-            } else {
-                $('#btnStart').hide()
-            }
-        })
-    </script>
+    <script src="index.js"></script>
 </body>
 
 </html>

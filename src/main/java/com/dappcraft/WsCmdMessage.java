@@ -9,4 +9,5 @@ public class WsCmdMessage {
     public String debugCode;
     public String signature;
     public String messageHex;
+    public String data;
 }

@@ -9,4 +9,5 @@ public class WsResult {
     public Double reward;
     public String error;
     public UserInfo userInfo;
+    public String data;
 }
