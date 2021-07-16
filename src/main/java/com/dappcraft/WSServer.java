@@ -495,6 +495,8 @@ public class WSServer {
                 }
             }
 
+            user.setHasClaimedName(true);
+
             if (user.getHasClaimedName()) {
                 //TODO signature verify
                 if (signature != null  && messageHex != null && messageHex.length() >= 16) {
@@ -504,8 +506,10 @@ public class WSServer {
                     }
                 }
                 result.error = "Signature is not valid";
+                return false;
             } else {
                 result.error = "Do not have claimed DCL Name";
+                return false;
             }
         }
         result.error = "User not found";
