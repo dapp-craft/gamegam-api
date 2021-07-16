@@ -1,6 +1,6 @@
-function connect() {
-    const params = new URLSearchParams(location.search)
+const params = new URLSearchParams(location.search)
 
+function connect() {
     params.set('user', $('#user').val())
 
     location.search = "?" + params.toString();
@@ -10,7 +10,13 @@ function showConnectBtn() {
     $('#connect').show()
 }
 function connectTo(project) {
-    const ws = new WebSocket(location.protocol.replace('http', 'ws') + location.host + '/dc_panel/' + project);
+    var baseUrl = location.protocol.replace('http', 'ws') + location.host
+    if (params.get('prod') == 'true') {
+        baseUrl = 'wss://scene-api.dapp-craft.com'
+    }
+    const url = baseUrl + '/dc_panel/' + project
+    console.log('connecting to ', url)
+    const ws = new WebSocket(url);
     return ws;
 }
 
@@ -40,8 +46,20 @@ function sendCommand(cmd, step) {
             }
             c.data = str
         } else if (cmd == 'updateParams') {
-            c.step = $('#paramName').val()
-            c.data = $('#paramValue').val()
+//            c.step = $('#paramName').val()
+//            c.data = $('#paramValue').val()
+            var pName = $('#paramName').val()
+            var pVal = $('#paramValue').val()
+            var pp = {}
+            pp[pName] = pVal
+
+            bcmd = {
+                cmd: "updateSceneParams",
+                data: JSON.stringify(pp)
+            }
+
+            c.cmd = 'broadcast'
+            c.data = JSON.stringify(bcmd)
         }
 
         console.log(c)

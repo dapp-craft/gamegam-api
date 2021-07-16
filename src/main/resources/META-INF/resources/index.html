@@ -20,26 +20,27 @@
         <br />
         <br />
         <button class="btn" onclick="sendCommand('broadcast', 'startEvent')">start event</button>
-        <button class="btn" onclick="sendCommand('getStats')">getStats</button>
+        <button class="btn" hidden onclick="sendCommand('getStats')">getStats</button>
         <br />
-        <button class="btn"
+        <button class="btn" hidden
             onclick="alert('TODO')">Help</button>
         <br />
-        param:
         <br />
         <select class="btn_input" id="paramName">
-            <option>freq</option>
+            <option>man_speed</option>
             <option>startTime</option>
         </select>
-        <input class="btn_input" type="text" id="paramValue" />
         <br />
         <br />
-        <button class="btn" onclick="sendCommand('updateParams')">updateParams</button>
+        <input class="btn_input" type="text" placeholder="param value" id="paramValue" />
+        <br />
+        <br />
+        <button class="btn" onclick="sendCommand('updateParams')">update Param</button>
         <br/>
-        scene params:
-        <br/>
-        <textarea id="sceneParams">{}</textarea>
-        <button class="btn" onclick="sendCommand('updateSceneParams')">updateSceneParams</button>
+<!--        scene params:-->
+<!--        <br/>-->
+        <textarea hidden id="sceneParams">{}</textarea>
+        <button hidden class="btn" onclick="sendCommand('updateSceneParams')">updateSceneParams</button>
     </div>
     <div class="btn_block">
     </div>
